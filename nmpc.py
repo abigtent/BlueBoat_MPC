@@ -1,22 +1,23 @@
 import casadi as ca
+import json 
 import pickle
 
-# Vessel constants
-m = 20.0      # Mass of the boat (kg)
-Iz = 8.5     # Moment of inertia (kg.m^2)
-X_u_dot = -30  # Added mass in surge
-Y_v_dot = -25  # Added mass in sway
-N_r_dot = -6  # Added moment of inertia in yaw
-Xu = -40     # Linear damping in surge
-Yv = -65     # Linear damping in sway
-Nr = -50     # Linear damping in yaw
-Y_r = -0.15  
-N_v = -0.12
+with open('parameters.json', 'r') as file:
+    parameters = json.load(file)['vessel']
 
-# Constants
-thruster_d = 0.3
-rad_vessel = 1.0
-##-----------------##
+m = parameters['m']
+Iz = parameters['Iz']
+X_u_dot = parameters['X_u_dot']
+Y_v_dot = parameters['Y_v_dot']
+N_r_dot = parameters['N_r_dot']
+Xu = parameters['Xu']
+Yv = parameters['Yv']
+Nr = parameters['Nr']
+Y_r = parameters['Y_r']
+N_v = parameters['N_v']
+thruster_d = parameters['thruster_d']
+rad_vessel = parameters['rad_vessel']
+
 
 # Mass matrix
 M = ca.DM([
