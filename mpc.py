@@ -1,6 +1,5 @@
 import casadi as ca
 import pickle
-import matplotlib.pyplot as plt
 
 # Constants
 d = 0.3
