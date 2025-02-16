@@ -32,7 +32,7 @@ class NMPC:
         # Constraints
         self.x_min, self.x_max = 0, 50
         self.y_min, self.y_max = 0, 50
-        self.u_min, self.u_max = 0, 0.5
+        self.u_min, self.u_max = -0.5, 0.5
         self.r_min, self.r_max = -0.5, 0.5
 
         # Initial states [x, y, psi, u, v, r]
@@ -94,7 +94,33 @@ class NMPC:
 
     def define_objective(self):
         # Define the objective function
-        self.min_error = ca.sumsqr(self.x - self.target_pos[0]) + ca.sumsqr(self.y - self.target_pos[1])
+        self.min_error = 100*ca.sumsqr(self.x - self.target_pos[0]) + ca.sumsqr(self.y - self.target_pos[1])
+
+        # for k in range(self.N_steps):
+        #     yaw_change = self.psi[k+1] - self.psi[k]
+        #     self.min_error += 1 * ca.sumsqr(yaw_change)  # Penalty factor for yaw changes
+
+        # for k in range(self.N_steps):
+        #     self.min_error += 2 * (ca.sumsqr(self.left_thruster[k]) + ca.sumsqr(self.right_thruster[k]))
+
+        # Add obstacle avoidance penalty
+        for obstacle in self.obs:
+            obs_x = obstacle['x']
+            obs_y = obstacle['y']
+            obs_r = obstacle['radius']
+
+            for k in range(self.N_steps + 1):
+                # Calculate distance to the obstacle
+                dist = ca.sqrt((self.x[k] - obs_x)**2 + (self.y[k] - obs_y)**2)
+
+                safe_distance = obs_r + self.col_buff
+
+                # Penalty cost: exponential cost that grows as we approach the obstacle
+                penalty = ca.exp(-1 * (dist - safe_distance))
+
+                # Add penalty to the objective
+                self.min_error += 2 * penalty
+
         self.opti.minimize(self.min_error)
     
     def setup_solver(self):
