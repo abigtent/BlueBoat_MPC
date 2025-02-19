@@ -8,12 +8,10 @@ c_omega = 0.95 # rotational drag coefficient
 c_d = 0.95 # longitudinal drag coefficient 
 I = 8.5 # moment of intertia
 
-
 # Define optimization variables
 N_steps = 100  # Prediction horizon
 dt = 0.5      # Time step
-A_max = 0.5       # Max acceleration (m/s²)
-V_max = 2.0       # Max velocity (m/s)
+
 
 opti = ca.Opti()  # Create an optimization problem
 
@@ -23,8 +21,8 @@ opti = ca.Opti()  # Create an optimization problem
 
 n_min, n_max = 0, 50
 e_min, e_max = 0, 50
-v_min, v_max = 0, 3
-omega_min, omega_max = 0, 10
+v_min, v_max = 0, 2
+omega_min, omega_max = 0, 50
 
 # State variables
 #N = opti.variable(N_steps+1)  # North position
@@ -53,7 +51,7 @@ right_thruster = opti.variable(N_steps)  # Right thruster force
 #opti.subject_to(V_N[0] == V_N0)
 #opti.subject_to(V_E[0] == V_E0)
 
-n0, e0, v0, heading_angle0, omega0 = 0, 0, 0, 90, 0  # Initial state
+n0, e0, v0, heading_angle0, omega0 = 0, 0, 0, 0, 0  # Initial state
 
 opti.subject_to(n[0] == n0)
 opti.subject_to(e[0] == e0)
@@ -73,12 +71,12 @@ obstacles = [
 
 # Define Dynamic Obstacles (ships): [N_init, E_init, V_N, V_E]
 dynamic_obstacles = [
-    #[10, 15, 1, -0.75],  
-    #[15, 25, 0.7, -0.2],
-    #[30, 30, -0.2, 0] 
+    [10, 15, 1, -0.75],  
+    [15, 25, 0.7, -0.2],
+    [30, 30, -0.2, 0] 
 ]
 
-collision_buffer = 2.0  # Safe distance margin (meters)
+collision_buffer = 1.0  # Safe distance margin (meters)
 
 # Store dynamic obstacle trajectories
 dynamic_trajs = {i: ([], []) for i in range(len(dynamic_obstacles))}
@@ -123,14 +121,15 @@ for k in range(N_steps):
 
 # Objective function (minimize acceleration and tracking error)
 #accel_cost = 1 * ca.sumsqr(A_N) + ca.sumsqr(A_E)
-goal_cost = 10 * ((n[-1] - target_pos[0])**2 + (e[-1] - target_pos[1])**2)
+goal_cost = 100 * ((n[-1] - target_pos[0])**2 + (e[-1] - target_pos[1])**2)
+thruster_cost = 0.1 * (ca.sumsqr(left_thruster) + ca.sumsqr(right_thruster))
 
 
 obstacle_penalty = 0
 for obs in obstacles:
     N_obs, E_obs, r_obs = obs
     for k in range(N_steps):
-        obstacle_penalty += 10 / ((n[k] - N_obs)**2 + (e[k] - E_obs)**2 + 0.1)
+        obstacle_penalty += 5 / ((n[k] - N_obs)**2 + (e[k] - E_obs)**2 + 0.1)
 
 # Penalty for dynamic obstacles (lower weight)
 dynamic_obstacle_penalty = 0
@@ -138,9 +137,9 @@ for i, ship in enumerate(dynamic_obstacles):
     for k in range(N_steps):
         N_ship_k = N_ship0 + V_N_ship * (k * dt)
         E_ship_k = E_ship0 + V_E_ship * (k * dt)
-        dynamic_obstacle_penalty += 10 / ((n[k] - N_ship_k)**2 + (e[k] - E_ship_k)**2 + 0.1)
+        dynamic_obstacle_penalty += 1 / ((n[k] - N_ship_k)**2 + (e[k] - E_ship_k)**2 + 0.1)
 
-opti.minimize(goal_cost + obstacle_penalty + dynamic_obstacle_penalty)
+opti.minimize(goal_cost + obstacle_penalty + dynamic_obstacle_penalty + thruster_cost)
 
 # Solver options
 opti.solver("ipopt")

@@ -91,37 +91,40 @@ class NMPC:
             self.opti.subject_to(self.u[k+1] == self.u[k] + nu_dot[0] * self.dt)
             self.opti.subject_to(self.v[k+1] == self.v[k] + nu_dot[1] * self.dt)
             self.opti.subject_to(self.r[k+1] == self.r[k] + nu_dot[2] * self.dt)
-
+    
     def define_objective(self):
         # Define the objective function
-        self.min_error = 100*ca.sumsqr(self.x - self.target_pos[0]) + ca.sumsqr(self.y - self.target_pos[1])
+        self.min_error = 100 * ca.sumsqr(self.x - self.target_pos[0]) + ca.sumsqr(self.y - self.target_pos[1])
 
-        # for k in range(self.N_steps):
-        #     yaw_change = self.psi[k+1] - self.psi[k]
-        #     self.min_error += 1 * ca.sumsqr(yaw_change)  # Penalty factor for yaw changes
+        # Penalizing large changes in yaw
+        for k in range(self.N_steps):
+            yaw_change = self.psi[k+1] - self.psi[k]
+            #self.min_error += 1 * ca.sumsqr(yaw_change)  # Penalty factor for yaw changes
 
-        # for k in range(self.N_steps):
-        #     self.min_error += 2 * (ca.sumsqr(self.left_thruster[k]) + ca.sumsqr(self.right_thruster[k]))
+        # Penalizing large changes in thruster inputs
+        for k in range(1, self.N_steps):
+            self.min_error += 5 * ca.sumsqr(self.left_thruster[k] - self.left_thruster[k-1])
+            self.min_error += 5 * ca.sumsqr(self.right_thruster[k] - self.right_thruster[k-1])
 
-        # Add obstacle avoidance penalty
+        # Add obstacle avoidance penalty using a smooth hinge function
         for obstacle in self.obs:
             obs_x = obstacle['x']
             obs_y = obstacle['y']
             obs_r = obstacle['radius']
-
-            for k in range(self.N_steps + 1):
-                # Calculate distance to the obstacle
-                dist = ca.sqrt((self.x[k] - obs_x)**2 + (self.y[k] - obs_y)**2)
-
-                safe_distance = obs_r + self.col_buff
-
-                # Penalty cost: exponential cost that grows as we approach the obstacle
-                penalty = ca.exp(-1 * (dist - safe_distance))
-
-                # Add penalty to the objective
-                self.min_error += 2 * penalty
+    
+        for k in range(self.N_steps + 1):
+        # Calculate distance to the obstacle
+            dist = ca.sqrt((self.x[k] - obs_x)**2 + (self.y[k] - obs_y)**2)
+            safe_distance = obs_r + self.col_buff
+        
+        # Use a smooth hinge: zero penalty when dist >= safe_distance, quadratic when too close.
+        penalty = ca.fmax(0, safe_distance - dist)**2 / (safe_distance**2)
+        print(safe_distance-dist)
+        # Add penalty to the objective with a chosen weight (here, 2)
+        self.min_error += 30 * penalty
 
         self.opti.minimize(self.min_error)
+
     
     def setup_solver(self):
         self.opti.solver("ipopt")

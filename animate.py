@@ -4,31 +4,34 @@ from matplotlib.animation import FuncAnimation
 
 
 def animate_trajectory(x_opt, y_opt, psi_opt, target_pos, obs, dt, left_thruster_opt, right_thruster_opt, u_opt, v_opt, r_opt):
+    
+    # ========== Setup figure =================
     fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Plot static obstacles
-    for obstacle in obs:
-        circle = plt.Circle((obstacle['x'], obstacle['y']), obstacle['radius'], color='orange', alpha=0.5, label='Obstacle')
-        ax.add_patch(circle)
-
-    # Plot target position
-    ax.scatter(target_pos[0], target_pos[1], color='red', s=100, label='Target Position')
-
-    # Initialize vessel marker
-    vessel, = ax.plot([], [], 'bo-', lw=2, label='Vessel')
-    yaw_text = ax.text(0.02, 0.95, '', transform=ax.transAxes, fontsize=12, color='blue')
-    surge_text = ax.text(0.02, 0.90, '', transform=ax.transAxes, fontsize=12, color='green')
-    thruster_text = ax.text(0.02, 0.85, '', transform=ax.transAxes, fontsize=12, color='purple')
-
-    # Set axis limits based on trajectory
     ax.set_xlim(min(x_opt) - 10, max(x_opt) + 10)
     ax.set_ylim(min(y_opt) - 10, max(y_opt) + 10)
     ax.set_title('NMPC Vessel Trajectory Animation')
     ax.set_xlabel('X Position [m]')
     ax.set_ylabel('Y Position [m]')
-    ax.legend()
-    ax.grid(True)
+    
+    # ====== Plot static elements ======
+    
+    ax.scatter(target_pos[0], target_pos[1], color='red', s=100, label='Target Position')
+    
+    for obstacle in obs:
+        circle = plt.Circle((obstacle['x'], obstacle['y']), obstacle['radius'], color='orange', alpha=0.5, label='Obstacle')
+        ax.add_patch(circle)
 
+    
+    # ====== Initialize vessel marker, trajectory and data field ======
+    vessel_marker, = ax.plot([], [], 'bo', markersize=8, label="BlueBoat")
+    vessel_path, = ax.plot([], [], 'b--', alpha=0.5)
+    yaw_text = ax.text(0.02, 0.95, '', transform=ax.transAxes, fontsize=12, color='blue')
+    surge_text = ax.text(0.02, 0.90, '', transform=ax.transAxes, fontsize=12, color='green')
+    thruster_text = ax.text(0.02, 0.85, '', transform=ax.transAxes, fontsize=12, color='purple')
+    
+    # ====== Store trajectory data ======
+    trajectory_x = []
+    trajectory_y = []
 
     arrow = ax.annotate('', xy=(0, 0), xytext=(0, 0), arrowprops=dict(facecolor='red', headwidth=6, headlength=8))
 
@@ -36,10 +39,19 @@ def animate_trajectory(x_opt, y_opt, psi_opt, target_pos, obs, dt, left_thruster
     def update(frame):
         if np.linalg.norm([x_opt[frame] - target_pos[0], y_opt[frame] - target_pos[1]]) < 1.0:
             anim.event_source.stop()
-        vessel.set_data(x_opt[:frame + 1], y_opt[:frame + 1])
+        vessel_marker.set_data(x_opt[frame], y_opt[frame])
+
+        
+        vessel_path.set_data(x_opt[:frame], y_opt[:frame])
+        
+        # Update text annotations
         surge_text.set_text(f'Surge Velocity: {u_opt[frame]:.2f} m/s')
         thruster_text.set_text(f'Thruster Commands: L={left_thruster_opt[frame]:.2f} N, R={right_thruster_opt[frame]:.2f} N')
         yaw_text.set_text(f'Yaw Angle: {psi_opt[frame]:.2f} rad')
+
+        # Store trajectory and update path
+        trajectory_x.append(x_opt[:frame + 1])
+        trajectory_y.append(y_opt[:frame + 1])
 
         #Update arrow direction
         arrow_length = 2
@@ -48,9 +60,11 @@ def animate_trajectory(x_opt, y_opt, psi_opt, target_pos, obs, dt, left_thruster
         arrow.set_position((x_opt[frame], y_opt[frame]))
         arrow.xy = (x_opt[frame] + dx, y_opt[frame] + dy)
 
-        return vessel, yaw_text, surge_text, thruster_text, arrow
+        return vessel_marker, vessel_path, yaw_text, surge_text, thruster_text, arrow
 
     anim = FuncAnimation(fig, update, frames=len(x_opt), interval=dt * 1000, blit=True)
+    plt.legend()
+    plt.grid()
     plt.show()
 
     # Generate time vector
