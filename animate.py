@@ -39,7 +39,7 @@ def animate_trajectory(x_opt, y_opt, psi_opt, target_pos, obs, dt, left_thruster
     def update(frame):
         if np.linalg.norm([x_opt[frame] - target_pos[0], y_opt[frame] - target_pos[1]]) < 1.0:
             anim.event_source.stop()
-        vessel_marker.set_data(x_opt[frame], y_opt[frame])
+        vessel_marker.set_data(x_opt[:frame], y_opt[:frame])
 
         
         vessel_path.set_data(x_opt[:frame], y_opt[:frame])
@@ -50,8 +50,8 @@ def animate_trajectory(x_opt, y_opt, psi_opt, target_pos, obs, dt, left_thruster
         yaw_text.set_text(f'Yaw Angle: {psi_opt[frame]:.2f} rad')
 
         # Store trajectory and update path
-        trajectory_x.append(x_opt[:frame + 1])
-        trajectory_y.append(y_opt[:frame + 1])
+        #trajectory_x.append(x_opt[:frame + 1])
+        #trajectory_y.append(y_opt[:frame + 1])
 
         #Update arrow direction
         arrow_length = 2
