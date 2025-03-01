@@ -2,7 +2,7 @@ import numpy as np
 
 def los_guidance(x_pos, y_pos, psi, waypoints, current_wp_idx, los_lookahead, thresh_next_wp):
         if current_wp_idx >= len(waypoints):
-            return psi  # Keep last heading if done
+            return psi, current_wp_idx, 0.0, waypoints[-1]
         
         x, y = x_pos, y_pos
 
@@ -14,7 +14,9 @@ def los_guidance(x_pos, y_pos, psi, waypoints, current_wp_idx, los_lookahead, th
         path_length = np.hypot(dx, dy)
 
         if path_length < 1e-6:
-            return np.arctan2(dy, dx)  # Avoid division by zero
+            #return np.arctan2(dy, dx)  # Avoid division by zero
+            return np.arctan2(dy, dx), current_wp_idx, 0.0, wp_next
+         
         
         t = ((x - wp_curr[0]) * dx + (y - wp_curr[1]) * dy) / path_length**2
         t = np.clip(t, 0, 1)  # Limit t to [0, 1] for interpolation

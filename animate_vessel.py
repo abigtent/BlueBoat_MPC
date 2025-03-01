@@ -22,7 +22,7 @@ def animate_vessel(simX, waypoints=None, interval=100):
     
     # Set plot limits based on simulation data with some margin.
      # Set plot limits based on the waypoints coordinates plus extra padding.
-    padding = 0.1
+    padding = 1.0
     wp_x_min, wp_x_max = np.min(waypoints[:, 0]), np.max(waypoints[:, 0])
     wp_y_min, wp_y_max = np.min(waypoints[:, 1]), np.max(waypoints[:, 1])
     margin_x = padding * (wp_x_max - wp_x_min) if wp_x_max > wp_x_min else 1.0
@@ -32,6 +32,7 @@ def animate_vessel(simX, waypoints=None, interval=100):
     
     # If waypoints are provided, plot them with markers and a dotted line connecting them.
     if waypoints is not None:
+        ax.plot([0, waypoints[0, 0]], [0, waypoints[0, 1]], 'k--', label="Start to 1st WP")
         # Plot dotted line connecting waypoints.
         ax.plot(waypoints[:, 0], waypoints[:, 1], 'k--', label="Path")
         # Plot the waypoints themselves.
