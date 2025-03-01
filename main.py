@@ -3,19 +3,22 @@ import numpy as np
 from acados_settings import *
 from plotting import plotFnc as plot
 from animate_vessel import animate_vessel
+from guidance import los_guidance
 
 # Prediction horizon, discretization, simulation duration
 Tf = 10.0   # prediction horizon [s]
 N = 100     # number of discretization steps
-T = 30.0    # maximum simulation time [s]
+T = 100.0    # maximum simulation time [s]
+los_lookahead = 5.0  # Lookahead distance for LOS guidance
+thresh_next_wp = 20.0  # Threshold to switch waypoints
 
 # load acados model and solver
 constraint, model, acados_solver = acados_settings(Tf, N)
 
 # dimensions from the vessel model: 6 states, 2 controls
-nx = model.x.size()[0]   # should be 6
-nu = model.u.size()[0]   # should be 2
-ny = nx + nu             # stage cost dimension: 8
+nx = model.x.size()[0]   
+nu = model.u.size()[0]   
+ny = nx + nu             
 ny_e = nx                # terminal cost dimension: 6
 Nsim = int(T * N / Tf)
 
@@ -27,17 +30,22 @@ simError = np.ndarray((Nsim, 3))  # for example: [heading_error, lateral_error, 
 tcomp_sum = 0
 tcomp_max = 0
 
+# Load waypoints from file
+waypoints = np.loadtxt('waypoints.txt') 
+current_wp_idx = 0
+
 # Define target for the vessel:
 # For example, we want to reach x=10, y=10, with zero heading error and zero velocities.
-target_state = np.array([10.0, 5.0, 0.0, 0.0, 0.0, 0.0])    # [x, y, ψ, u, v, r]
-target_control = np.array([0.0, 0.0])                           # desired control inputs
+target_state = np.array([waypoints[current_wp_idx, 0],
+                         waypoints[current_wp_idx, 1],
+                         0.0, 0.0, 0.0, 0.0])
+target_control = np.array([0.0, 0.0])                        # desired control inputs
 # Stage cost reference: (state, control) → 8-dimensional
 yref = np.concatenate((target_state, target_control))
 # Terminal stage reference: only the state matters (6-dimensional)
 yref_N = target_state
 
 # Set the initial condition for the solver.
-# Here we choose a starting state different from the target.
 x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 # Update the initial state constraint at stage 0 with the full state.
 acados_solver.set(0, "lbx", x0)
@@ -45,6 +53,20 @@ acados_solver.set(0, "ubx", x0)
 
 # Simulation loop
 for i in range(Nsim):
+    # Get current state from solver to check if the current waypoint is reached
+    x0_sol = acados_solver.get(0, "x")
+    current_position = x0_sol[:2]  # assume first two entries are x and y
+    current_heading = x0_sol[2]    # current psi
+
+    # Compute desired heading using Line of Sight (LOS) guidance
+    psi_d, current_wp_idx, cross_track_error, wp_next = los_guidance(current_position[0], current_position[1], current_heading, waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
+    print("Next waypoint:", wp_next)
+    # Update target_state x and y based on the current waypoint.
+    target_state[0] = waypoints[current_wp_idx, 0]
+    target_state[1] = waypoints[current_wp_idx, 1]
+    target_state[2] = psi_d
+    yref = np.concatenate((target_state, target_control))
+    yref_N = target_state
     # Update the reference at every stage of the horizon
     for j in range(N):
         acados_solver.set(j, "yref", yref)

@@ -2,16 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def animate_vessel(simX, target_position, interval=100):
+def animate_vessel(simX, waypoints=None, interval=100):
     """
-    Animate the vessel's position over time.
+    Animate the vessel's position over time and draw waypoints and a dotted connecting line.
 
     Parameters:
-        simX (np.ndarray): Simulation data for states (Nsim x nx).
+        simX (np.ndarray): Simulation data for states (Nsim x nx). 
                            The first two columns are assumed to be x and y positions.
-        target_position (list or tuple): [x, y] coordinates for the target.
+        waypoints (np.ndarray, optional): Waypoints as an array of shape (n_wp, 2).
         interval (int): Delay between frames in milliseconds.
     """
+    waypoints = np.loadtxt('waypoints.txt')
+
     fig, ax = plt.subplots()
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
@@ -19,16 +21,21 @@ def animate_vessel(simX, target_position, interval=100):
     ax.grid(True)
     
     # Set plot limits based on simulation data with some margin.
-    x_min, x_max = np.min(simX[:, 0]), np.max(simX[:, 0])
-    y_min, y_max = np.min(simX[:, 1]), np.max(simX[:, 1])
-    margin_x = 0.1 * (x_max - x_min) if x_max > x_min else 1.0
-    margin_y = 0.1 * (y_max - y_min) if y_max > y_min else 1.0
-    ax.set_xlim(x_min - margin_x, x_max + margin_x)
-    ax.set_ylim(y_min - margin_y, y_max + margin_y)
+     # Set plot limits based on the waypoints coordinates plus extra padding.
+    padding = 0.1
+    wp_x_min, wp_x_max = np.min(waypoints[:, 0]), np.max(waypoints[:, 0])
+    wp_y_min, wp_y_max = np.min(waypoints[:, 1]), np.max(waypoints[:, 1])
+    margin_x = padding * (wp_x_max - wp_x_min) if wp_x_max > wp_x_min else 1.0
+    margin_y = padding * (wp_y_max - wp_y_min) if wp_y_max > wp_y_min else 1.0
+    ax.set_xlim(wp_x_min - margin_x, wp_x_max + margin_x)
+    ax.set_ylim(wp_y_min - margin_y, wp_y_max + margin_y)
     
-    # Plot the target position as a red star.
-    target_marker, = ax.plot(target_position[0], target_position[1],
-                             'r*', markersize=15, label="Target")
+    # If waypoints are provided, plot them with markers and a dotted line connecting them.
+    if waypoints is not None:
+        # Plot dotted line connecting waypoints.
+        ax.plot(waypoints[:, 0], waypoints[:, 1], 'k--', label="Path")
+        # Plot the waypoints themselves.
+        ax.plot(waypoints[:, 0], waypoints[:, 1], 'ko', label="Waypoints")
     
     # Create objects for the vessel marker and its trail.
     trail_line, = ax.plot([], [], 'b-', linewidth=2, label="Trail")
@@ -48,8 +55,8 @@ def animate_vessel(simX, target_position, interval=100):
         x_data = simX[:frame+1, 0]
         y_data = simX[:frame+1, 1]
         trail_line.set_data(x_data, y_data)
-        # Current vessel position.
-        vessel_marker.set_data(simX[frame, 0], simX[frame, 1])
+        # Set current vessel position (as a sequence).
+        vessel_marker.set_data([simX[frame, 0]], [simX[frame, 1]])
         return trail_line, vessel_marker
 
     # Create the animation.
@@ -62,14 +69,12 @@ def animate_vessel(simX, target_position, interval=100):
 
 if __name__ == "__main__":
     # Example usage with dummy simulation data:
-    # Assume a simulation over 30 seconds with 300 steps (adjust as needed)
     Nsim = 300
     t = np.linspace(0, 30, Nsim)
     # Create a dummy trajectory: vessel moves linearly from (0,0) to (10,10)
     simX = np.zeros((Nsim, 6))
     simX[:, 0] = np.linspace(0, 10, Nsim)  # x position
     simX[:, 1] = np.linspace(0, 10, Nsim)  # y position
-    # For the remaining state dimensions, you could fill with zeros or other dummy data.
 
-    target_position = [10, 10]  # The desired target position.
-    animate_vessel(simX, target_position, interval=50)
+    waypoints = np.loadtxt('waypoints.txt')
+    animate_vessel(simX, waypoints=waypoints, interval=50)
