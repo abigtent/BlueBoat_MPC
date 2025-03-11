@@ -4,6 +4,7 @@ from acados_settings import *
 from plotting import plotFnc as plot
 from animate_vessel import animate_vessel
 from guidance import los_guidance
+from lidar_simulator import LidarSimulator
 
 # Prediction horizon, discretization, simulation duration
 Tf = 10.0   # prediction horizon [s]
@@ -60,7 +61,6 @@ for i in range(Nsim):
 
     # Compute desired heading using Line of Sight (LOS) guidance
     psi_d, current_wp_idx, cross_track_error, wp_next = los_guidance(current_position[0], current_position[1], current_heading, waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
-    print("Next waypoint:", wp_next)
     # Update target_state x and y based on the current waypoint.
     target_state[0] = waypoints[current_wp_idx, 0]
     target_state[1] = waypoints[current_wp_idx, 1]
@@ -106,9 +106,12 @@ for i in range(Nsim):
 # Define time vector for plotting
 t = np.linspace(0.0, Nsim * Tf / N, Nsim)
 
+obstacles = [(5.0, 5.0, 1.0), (8.0, 8.0, 1.0), (12.0, 12.0, 1.0)]
+
 # Animate the vessel trajectory
 target_position = [target_state[0], target_state[1]]
-animate_vessel(simX, target_position, interval=50)
+lidar_sim = LidarSimulator(obstacles, max_range=20, num_rays=64)
+animate_vessel(simX, waypoints, lidar_sim, interval=50)
 
 # Plot the results.
 plot(simX, simU, simError, t)

@@ -20,13 +20,20 @@ def usv_model():
     thruster_d = 0.3
 
     # Set up state variables: [x, y, psi, u, v, r]
-    x   = MX.sym('x')
-    y   = MX.sym('y')
-    psi = MX.sym('psi')
-    u   = MX.sym('u')
-    v   = MX.sym('v')
-    r   = MX.sym('r')
-    x_states = vertcat(x, y, psi, u, v, r)
+    x   = MX.sym('x') # x position
+    y   = MX.sym('y') # y position
+    psi = MX.sym('psi') # yaw angle
+    u   = MX.sym('u') # surge velocity
+    v   = MX.sym('v') # sway velocity
+    r   = MX.sym('r') # yaw rate 
+    
+    #x_states = vertcat(x, y, psi, u, v, r)
+    
+    chi = MX.sym('chi') # course angle
+    chi_s = MX.sym('chi_s') #
+    chi_c = MX.sym('chi_c') #
+    cross_error = MX.sym('cross_error')
+    x_states = vertcat(x, y, psi, u, v, r, chi, chi_s, chi_c, cross_error)
 
     # Control inputs
     port_thruster  = MX.sym('left_thruster')
@@ -41,7 +48,13 @@ def usv_model():
     vdot = MX.sym("vdot")
     rdot = MX.sym("rdot")
     
-    xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot)
+    #xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot)
+    
+    chidot = MX.sym("chidot")
+    chidot_s = MX.sym("chidot_s")
+    chidot_c = MX.sym("chidot_c")
+    cross_error_dot = MX.sym("cross_error_dot")
+    xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot, chidot, chidot_s, chidot_c, cross_error_dot)
 
     # algebraic variables
     z = vertcat([])
@@ -81,10 +94,12 @@ def usv_model():
 
     # Compute the body-fixed acceleration: nu_dot = M^{-1}*(tau - N*nu)
     nu_dot = mtimes(inv(M_mat), (tau - mtimes(N_mat, nu)))
+    
+    chi_dot = vertcat(r, r * cos(chi), -r * sin(chi))
 
   
     # Full state derivative
-    f_expl = vertcat(eta_dot, nu_dot)
+    f_expl = vertcat(eta_dot, nu_dot, chi_dot)
     
     # Model bounds
     model.u_min = 0
