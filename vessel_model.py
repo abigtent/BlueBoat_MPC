@@ -33,13 +33,21 @@ def usv_model():
     chi_s = MX.sym('chi_s') #
     chi_c = MX.sym('chi_c') #
     cross_error = MX.sym('cross_error')
-    x_states = vertcat(x, y, psi, u, v, r, chi, chi_s, chi_c, cross_error)
-
-    # Control inputs
     port_thruster  = MX.sym('left_thruster')
     stbd_thruster = MX.sym('right_thruster')
-    U = vertcat(port_thruster, stbd_thruster)
+    x_states = vertcat(x, y, psi, u, v, r, chi, chi_s, chi_c, cross_error, port_thruster, stbd_thruster)
 
+    # Control inputs
+    #port_thruster  = MX.sym('left_thruster')
+    #stbd_thruster = MX.sym('right_thruster')
+    #U = vertcat(port_thruster, stbd_thruster)
+    port_thruster_dot  = MX.sym('port_thruster_dot') 
+    stbd_thruster_dot  = MX.sym('stbd_thruster_dot')
+    U = vertcat(port_thruster_dot, stbd_thruster_dot)
+
+    # Thruster dynamics
+    thruster_dyn = vertcat(port_thruster_dot, stbd_thruster_dot)
+    
     # xdot
     xdot = MX.sym("xdot")
     ydot = MX.sym("ydot")
@@ -50,11 +58,11 @@ def usv_model():
     
     #xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot)
     
-    chidot = MX.sym("chidot")
-    chidot_s = MX.sym("chidot_s")
-    chidot_c = MX.sym("chidot_c")
-    cross_error_dot = MX.sym("cross_error_dot")
-    xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot, chidot, chidot_s, chidot_c, cross_error_dot)
+    chi_dot = r
+    chi_dot_s = r * cos(chi)
+    chi_dot_c = -r * sin(chi)
+    cross_error_dot = 
+    xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot, chi_dot, chi_dot_s, chi_dot_c, cross_error_dot, port_thruster_dot, stbd_thruster_dot)
 
     # algebraic variables
     z = vertcat([])
@@ -96,10 +104,9 @@ def usv_model():
     nu_dot = mtimes(inv(M_mat), (tau - mtimes(N_mat, nu)))
     
     chi_dot = vertcat(r, r * cos(chi), -r * sin(chi))
-
   
     # Full state derivative
-    f_expl = vertcat(eta_dot, nu_dot, chi_dot)
+    f_expl = vertcat(eta_dot, nu_dot, chi_dot, thruster_dyn)
     
     # Model bounds
     model.u_min = 0
@@ -113,7 +120,7 @@ def usv_model():
     
 
     # Define initial conditions
-    model.x0 = np.array([0, 0, 0, 0, 0, 0])
+    model.x0 = np.zeros(12)
     
     # Set up the parameters struct
     params = types.SimpleNamespace()
