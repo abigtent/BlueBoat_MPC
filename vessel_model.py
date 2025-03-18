@@ -1,150 +1,137 @@
 from casadi import *
+import numpy as np
+import types
 
 def usv_model():
-    constraint = types.SimpleNamespace()
     model = types.SimpleNamespace()
+    constraint = types.SimpleNamespace()
     
     model_name = 'vessel_model'
 
-    # Parameters
-    m         = 20.0   
-    Iz        = 8.5    
-    X_u_dot   = -30.0
-    Y_v_dot   = -25.0
-    N_r_dot   = -6.0
-    Xu        = -40.0
-    Yv        = -65.0
-    Nr        = -50.0
-    Y_r       = -0.15
-    N_v       = -0.12
-    thruster_d = 0.3
-
-    # Set up state variables: [x, y, psi, u, v, r]
-    x   = MX.sym('x') # x position
-    y   = MX.sym('y') # y position
-    psi = MX.sym('psi') # yaw angle
-    u   = MX.sym('u') # surge velocity
-    v   = MX.sym('v') # sway velocity
-    r   = MX.sym('r') # yaw rate 
+    # === Parameters ===
+    params = types.SimpleNamespace(
+        m = 20.0,   
+        Iz = 8.5,
+        X_u_dot = -30.0,
+        Y_v_dot = -25.0,
+        N_r_dot = -6.0,
+        Xu = -40.0,
+        Yv = -65.0,
+        Nr = -50.0,
+        Y_r = -0.15,
+        N_v = -0.12,
+        thruster_d = 0.3
+    )
     
-    #x_states = vertcat(x, y, psi, u, v, r)
-    
-    chi = MX.sym('chi') # course angle
-    chi_s = MX.sym('chi_s') #
-    chi_c = MX.sym('chi_c') #
-    cross_error = MX.sym('cross_error')
-    port_thruster  = MX.sym('left_thruster')
+    # === State Variables ===
+    x   = MX.sym('x')       # x position
+    y   = MX.sym('y')       # y position
+    psi = MX.sym('psi')     # yaw angle
+    u   = MX.sym('u')       # surge velocity
+    v   = MX.sym('v')       # sway velocity
+    r   = MX.sym('r')       # yaw rate 
+    chi = MX.sym('chi')     # course angle
+    chi_s = MX.sym('chi_s') # sin(chi)
+    chi_c = MX.sym('chi_c') # cos(chi)
+    cross_error = MX.sym('cross_error') 
+    port_thruster = MX.sym('left_thruster')
     stbd_thruster = MX.sym('right_thruster')
+    
     x_states = vertcat(x, y, psi, u, v, r, chi, chi_s, chi_c, cross_error, port_thruster, stbd_thruster)
 
     # Control inputs
-    #port_thruster  = MX.sym('left_thruster')
-    #stbd_thruster = MX.sym('right_thruster')
-    #U = vertcat(port_thruster, stbd_thruster)
-    port_thruster_dot  = MX.sym('port_thruster_dot') 
-    stbd_thruster_dot  = MX.sym('stbd_thruster_dot')
+    port_thruster_dot = MX.sym('port_thruster_dot') 
+    stbd_thruster_dot = MX.sym('stbd_thruster_dot')
     U = vertcat(port_thruster_dot, stbd_thruster_dot)
-
-    # Thruster dynamics
-    thruster_dyn = vertcat(port_thruster_dot, stbd_thruster_dot)
     
-    # xdot
-    xdot = MX.sym("xdot")
-    ydot = MX.sym("ydot")
-    psidot = MX.sym("psidot")
-    udot = MX.sym("udot")
-    vdot = MX.sym("vdot")
-    rdot = MX.sym("rdot")
-    
-    #xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot)
-    
-    chi_dot = r
-    chi_dot_s = r * cos(chi)
-    chi_dot_c = -r * sin(chi)
-    cross_error_dot = 
-    xdot = vertcat(xdot, ydot, psidot, udot, vdot, rdot, chi_dot, chi_dot_s, chi_dot_c, cross_error_dot, port_thruster_dot, stbd_thruster_dot)
+    # Parameters (desired course angle)
+    alpha = MX.sym('alpha')
+    p = alpha
 
-    # algebraic variables
-    z = vertcat([])
-
-    # parameters
-    p = vertcat([])
-
-    # Velocities vector: nu = [u, v, r]
-    nu = vertcat(u, v, r)
+    # ----------------------
+    # Model Equations
+    # ----------------------
 
     # Rotation matrix from body-fixed to inertial frame
     R = vertcat(
-            horzcat(cos(psi), -sin(psi), MX(0)),
-            horzcat(sin(psi),  cos(psi), MX(0)),
-            horzcat(MX(0),    MX(0),   MX(1))
-        )
-    
-    # Body-fixed velocities: eta_dot = R*nu
-    eta_dot = mtimes(R, nu)
+        horzcat(cos(psi), -sin(psi), MX(0)),
+        horzcat(sin(psi),  cos(psi), MX(0)),
+        horzcat(MX(0),     MX(0),    MX(1))
+    )
 
-    # Mass matrix (M) and hydrodynamic derivatives
+    # Kinematics: position and yaw
+    eta_dot = mtimes(R, vertcat(u, v, r))
+
+    # Mass Matrix (M)
     M_mat = vertcat(
-        horzcat(m - X_u_dot,    MX(0),          MX(0)),
-        horzcat(MX(0),          m - Y_v_dot,    MX(0)),
-        horzcat(MX(0),          MX(0),          Iz - N_r_dot)
+        horzcat(params.m - params.X_u_dot, MX(0), MX(0)),
+        horzcat(MX(0), params.m - params.Y_v_dot, MX(0)),
+        horzcat(MX(0), MX(0), params.Iz - params.N_r_dot)
     )
 
-    # Nonlinear damping
+    # Nonlinear damping matrix
     N_mat = vertcat(
-        horzcat(-Xu,        -m*r,        Y_v_dot*v),
-        horzcat(m*r,         -Yv,         -X_u_dot*u),
-        horzcat(-Y_v_dot*v,   X_u_dot*u,   -Nr)
+        horzcat(-params.Xu, -params.m*r, params.Y_v_dot*v),
+        horzcat(params.m*r, -params.Yv, -params.X_u_dot*u),
+        horzcat(-params.Y_v_dot*v, params.X_u_dot*u, -params.Nr)
     )
 
-    # Thruster input mapping: total force and moment
-    tau = vertcat(port_thruster + stbd_thruster, 0, -thruster_d * (stbd_thruster - port_thruster))
+    # Thruster mapping
+    tau = vertcat(
+        port_thruster + stbd_thruster, 
+        0, 
+        -params.thruster_d * (stbd_thruster - port_thruster)
+    )
 
-    # Compute the body-fixed acceleration: nu_dot = M^{-1}*(tau - N*nu)
-    nu_dot = mtimes(inv(M_mat), (tau - mtimes(N_mat, nu)))
-    
-    chi_dot = vertcat(r, r * cos(chi), -r * sin(chi))
-  
-    # Full state derivative
-    f_expl = vertcat(eta_dot, nu_dot, chi_dot, thruster_dyn)
-    
-    # Model bounds
-    model.u_min = 0
-    model.u_max = 1.5
-    
-    # State bounds
-    model.thrust_port_min = -50
-    model.thrust_stbd_min = -50
-    model.thrust_port_max = 50
-    model.thrust_stbd_max = 50
-    
+    # Dynamics (nu_dot = acceleration)
+    nu = vertcat(u, v, r)
+    nu_dot = mtimes(inv(M_mat), tau - mtimes(N_mat, nu))
 
-    # Define initial conditions
-    model.x0 = np.zeros(12)
+    # Course angle dynamics explicitly
+    chi_dot = vertcat(r, r * np.cos(chi), -r * np.sin(chi))
+
+    # Cross-track error dynamics
+    cross_error_dot = -(u * np.cos(psi) - v * np.sin(psi)) * np.sin(alpha)  + (u * np.sin(psi) + v * np.cos(psi)) * np.cos(alpha)
+
+    # Thruster dynamics
+    thruster_dyn = vertcat(port_thruster_dot, stbd_thruster_dot)
+
+    # Combine all derivatives explicitly
+    f_expl = vertcat(
+        eta_dot,   # eta_dot: position & heading
+        nu_dot,          # velocities acceleration
+        chi_dot,         # course angle dynamics
+        cross_error_dot, # cross-track error dynamics
+        thruster_dyn     # thruster state dynamics
+    )
+
+    # State derivative placeholders
+    xdot = MX.sym('xdot', 12)
+
+    # ----------------------
+    # Assign to model struct
+    # ----------------------
     
-    # Set up the parameters struct
-    params = types.SimpleNamespace()
-    params.m= m
-    params.Iz = Iz
-    params.X_u_dot = X_u_dot
-    params.Y_v_dot = Y_v_dot
-    params.N_r_dot = N_r_dot
-    params.Xu = Xu
-    params.Yv = Yv
-    params.Nr = Nr
-    params.Y_r = Y_r
-    params.N_v = N_v
-    params.thruster_d = thruster_d
-    
-    # Set up the model struct
     model.f_impl_expr = xdot - f_expl
     model.f_expl_expr = f_expl
-    model.x    = x_states
+    model.x = x_states
     model.xdot = xdot
-    model.u    = U
-    model.z    = z
-    model.p    = p
-    model.name = model_name
+    model.u = U
+    model.z = vertcat([])
+    model.p = p
     model.params = params
+    model.name = model_name
+    
+    # ----------------------
+    # Model Bounds & Initial Conditions
+    # ----------------------
+    model.u_min = 0
+    model.u_max = 2.0
+    model.thrust_port_min = -1000
+    model.thrust_stbd_min = -1000
+    model.thrust_port_max = 1000
+    model.thrust_stbd_max = 1000
+
+    model.x0 = np.zeros(12)
 
     return model, constraint

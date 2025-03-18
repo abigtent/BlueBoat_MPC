@@ -21,7 +21,10 @@ def acados_settings(Tf, N):
     model_ac.z = model.z
     model_ac.p = model.p
     model_ac.name = model.name
+    
     ocp.model = model_ac
+    
+    ocp.parameter_values = np.array([0.0])
 
     # define constraint
     #model_ac.con_h_expr = constraint.expr
@@ -37,13 +40,13 @@ def acados_settings(Tf, N):
     nsh = 2
 
     # set cost
-    Q = np.diag([10.0, 10.0, 10.0, 10.0, 10.0, 10.0])
+    Q = np.diag([100.0, 100.0, 1.0, 100.0, 1.0, 1.0, 1.0, 1.0, 1.0, 500.0, 1.0, 1.0])
     
     R = np.eye(nu)
-    R[0, 0] = 0.2
-    R[1, 1] = 0.2
+    R[0, 0] = 0.001
+    R[1, 1] = 0.001
 
-    Qe = np.diag([10.0, 10.0, 10.0, 10.0, 10.0, 10.0])
+    Qe = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
 
 
     ocp.cost.cost_type = "LINEAR_LS"
@@ -73,8 +76,8 @@ def acados_settings(Tf, N):
     #ocp.cost.Zu = 0 * np.ones((ns,))
 
     # set intial references
-    ocp.cost.yref = np.array([0, 0, 0, 0, 0, 0, 0, 0])
-    ocp.cost.yref_e = np.array([0, 0, 0, 0, 0, 0])
+    ocp.cost.yref = np.zeros((ny))
+    ocp.cost.yref_e = np.zeros((nx))
 
     # Setting constraints and applying them to the corresponding state and input variables
     ocp.constraints.lbx = np.array([model.u_min])

@@ -3,15 +3,15 @@ import numpy as np
 from acados_settings import *
 from plotting import plotFnc as plot
 from animate_vessel import animate_vessel
-from guidance import los_guidance
+from guidance2 import los_guidance, ssa
 from lidar_simulator import LidarSimulator
 
 # Prediction horizon, discretization, simulation duration
 Tf = 10.0   # prediction horizon [s]
 N = 100     # number of discretization steps
 T = 100.0    # maximum simulation time [s]
-los_lookahead = 5.0  # Lookahead distance for LOS guidance
-thresh_next_wp = 20.0  # Threshold to switch waypoints
+los_lookahead = 30.0  # Lookahead distance for LOS guidance
+thresh_next_wp = 1.0  # Threshold to switch waypoints
 
 # load acados model and solver
 constraint, model, acados_solver = acados_settings(Tf, N)
@@ -39,32 +39,45 @@ current_wp_idx = 0
 # For example, we want to reach x=10, y=10, with zero heading error and zero velocities.
 target_state = np.array([waypoints[current_wp_idx, 0],
                          waypoints[current_wp_idx, 1],
-                         0.0, 0.0, 0.0, 0.0])
-target_control = np.array([0.0, 0.0])                        # desired control inputs
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
+target_control = np.array([0.0, 0.0])                        
 # Stage cost reference: (state, control) → 8-dimensional
 yref = np.concatenate((target_state, target_control))
 # Terminal stage reference: only the state matters (6-dimensional)
 yref_N = target_state
 
 # Set the initial condition for the solver.
-x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+x0 = np.zeros(nx)
 # Update the initial state constraint at stage 0 with the full state.
 acados_solver.set(0, "lbx", x0)
 acados_solver.set(0, "ubx", x0)
+u_d = 1.5 # desired surge velocity
 
 # Simulation loop
 for i in range(Nsim):
     # Get current state from solver to check if the current waypoint is reached
     x0_sol = acados_solver.get(0, "x")
     current_position = x0_sol[:2]  # assume first two entries are x and y
-    current_heading = x0_sol[2]    # current psi
-
+    current_heading = x0_sol[2]
+    
     # Compute desired heading using Line of Sight (LOS) guidance
-    psi_d, current_wp_idx, cross_track_error, wp_next = los_guidance(current_position[0], current_position[1], current_heading, waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
+    #chi_d, current_wp_idx, wp_next = los_guidance(current_position[0], current_position[1], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
+    psi_d, current_wp_idx, cross_track_error, wp_next = los_guidance(current_position[0], current_position[1], x0_sol[2], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
+    #alpha_d = pi_p
+ 
+    #chi_d = ssa(chi_d)
+   
+    
     # Update target_state x and y based on the current waypoint.
     target_state[0] = waypoints[current_wp_idx, 0]
     target_state[1] = waypoints[current_wp_idx, 1]
-    target_state[2] = psi_d
+    target_state[3] = u_d
+    target_state[6] = psi_d
+    target_state[7] = np.sin(psi_d)
+    target_state[8] = np.cos(psi_d)
+    target_state[9] = 0.0
+    
+
     yref = np.concatenate((target_state, target_control))
     yref_N = target_state
     # Update the reference at every stage of the horizon
