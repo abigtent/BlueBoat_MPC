@@ -7,7 +7,7 @@ from guidance2 import los_guidance, ssa
 from lidar_simulator import LidarSimulator
 
 # Prediction horizon, discretization, simulation duration
-Tf = 10.0   # prediction horizon [s]
+Tf = 4.0   # prediction horizon [s]
 N = 100     # number of discretization steps
 T = 100.0    # maximum simulation time [s]
 los_lookahead = 20.0  # Lookahead distance for LOS guidance
@@ -53,6 +53,13 @@ acados_solver.set(0, "lbx", x0)
 acados_solver.set(0, "ubx", x0)
 u_d = 1.5 # desired surge velocity
 
+obstacles = [
+    (10.0, 7.5, 5.0),   # Obstacle 1: centered at (10, 7.5) with radius 5.0
+    (30.0, 27.5, 5.0),  # Obstacle 2: centered at (30, 27.5) with radius 5.0
+    (50.0, 60.0, 5.0)   # Obstacle 3: centered at (50, 60.0) with radius 5.0
+]
+lidar_sim = LidarSimulator(obstacles, max_range=20, num_rays=64, inflation_radius=1.0)
+
 # Simulation loop
 for i in range(Nsim):
     # Get current state from solver to check if the current waypoint is reached
@@ -67,20 +74,30 @@ for i in range(Nsim):
     #chi_d, current_wp_idx, wp_next = los_guidance(current_position[0], current_position[1], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
     psi_d, current_wp_idx, cross_track_error, wp_next= los_guidance(current_position[0], current_position[1], x0_sol[2], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
     #alpha_d = pi_p
- 
-    #chi_d = ssa(chi_d)
-    #print("Current WP: ", current_wp_idx)
-    #print("Current Position: ", current_position)
-    #print("Current Heading: ", current_heading)
-    #print("Desired Heading: ", psi_d)
-    #print("Cross Track Error: ", cross_track_error)
-    #print("Next WP: ", wp_next)
+    
+    detected_obstacles = lidar_sim.get_inflated_obstacles(current_position[0],
+                                                          current_position[1],
+                                                          current_heading)
+    
+    if len(detected_obstacles) > 0:
+        # If obstacles are detected, select the closest one:
+        distances = [np.linalg.norm(np.array([obs[0], obs[1]]) - current_position) for obs in detected_obstacles]
+        closest_idx = np.argmin(distances)
+        obs_x, obs_y, obs_r = detected_obstacles[closest_idx]
+    else:
+        # If no obstacles are detected, set the parameters so that the constraint becomes inactive.
+        # For instance, set obs_r to a very small value or obs_x, obs_y to far away.
+        obs_x, obs_y, obs_r = 0.0, 0.0, 0.0  # Or choose a safe default
+
+    print(obs_y)
+    
+    # Update the parameter vector for the obstacle avoidance constraint.
+    # For example, if your parameter vector is structured as [dummy, obs_x, obs_y, obs_r]:
+    p_val = np.array([0.0, obs_x, obs_y, obs_r])
     
     # Update target_state x and y based on the current waypoint.
     target_state[0] = waypoints[current_wp_idx, 0]
     target_state[1] = waypoints[current_wp_idx, 1]
-    #target_state[0] = wp_next[0]
-    #target_state[1] = wp_next[1]
     target_state[3] = u_d
     target_state[6] = psi_d
     target_state[7] = np.sin(psi_d)
@@ -90,9 +107,11 @@ for i in range(Nsim):
 
     yref = np.concatenate((target_state, target_control))
     yref_N = target_state
+    p_val = np.array([0.0, obs_x, obs_y, obs_r])
     # Update the reference at every stage of the horizon
     for j in range(N):
         acados_solver.set(j, "yref", yref)
+        acados_solver.set(j, "p", p_val)
     acados_solver.set(N, "yref", yref_N)
     
     # Solve the OCP
@@ -129,7 +148,7 @@ for i in range(Nsim):
 # Define time vector for plotting
 t = np.linspace(0.0, Nsim * Tf / N, Nsim)
 
-obstacles = [(5.0, 5.0, 1.0), (8.0, 8.0, 1.0), (12.0, 12.0, 1.0)]
+
 
 # Animate the vessel trajectory
 target_position = [target_state[0], target_state[1]]
