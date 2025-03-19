@@ -1,13 +1,17 @@
 import numpy as np
 
 def los_guidance(x_pos, y_pos, psi, waypoints, current_wp_idx, los_lookahead, thresh_next_wp):
-        if current_wp_idx >= len(waypoints):
+        if current_wp_idx >= len(waypoints) - 1:
             return psi, current_wp_idx, 0.0, waypoints[-1]
         
         x, y = x_pos, y_pos
 
+
         wp_curr = waypoints[current_wp_idx]
-        wp_next = waypoints[min(current_wp_idx + 1, len(waypoints) - 1)]
+        if current_wp_idx < len(waypoints) - 1:
+            wp_next = waypoints[current_wp_idx + 1]
+        else:
+            wp_next = wp_curr  # Keep the last waypoint fixed
         
         dx = wp_next[0] - wp_curr[0]
         dy = wp_next[1] - wp_curr[1]
@@ -32,8 +36,9 @@ def los_guidance(x_pos, y_pos, psi, waypoints, current_wp_idx, los_lookahead, th
         # Compute desired heading
         psi_d = np.arctan2(lookahead_y - y, lookahead_x - x)
 
-        if np.hypot(x-wp_next[0], y-wp_next[1]) < thresh_next_wp:
+        if np.hypot(x - wp_curr[0], y - wp_curr[1]) < thresh_next_wp and current_wp_idx < len(waypoints) - 1:
             current_wp_idx += 1
+
 
         return psi_d, current_wp_idx, cross_track_error, wp_next
     

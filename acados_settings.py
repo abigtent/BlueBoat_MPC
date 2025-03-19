@@ -2,6 +2,7 @@ from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 from vessel_model import usv_model
 import scipy.linalg
 import numpy as np
+import casadi as ca
 
 
 def acados_settings(Tf, N):
@@ -23,8 +24,36 @@ def acados_settings(Tf, N):
     model_ac.name = model.name
     
     ocp.model = model_ac
-    
-    ocp.parameter_values = np.array([0.0])
+
+    # --- Obstacle Parameters ---
+    r_v   = 0.5    # Vessel radius
+
+    x_pos = model_ac.x[0]
+    y_pos = model_ac.x[1]
+    x_obs = model_ac.p[1]
+    y_obs = model_ac.p[2]
+    r_obs = model_ac.p[3]
+
+    obs_expr = ca.sqrt((x_pos - x_obs)**2 + (y_pos - y_obs)**2) - (r_obs + r_v)
+    #model_ac.con_h_expr = obs_expr
+    #___________________
+    ocp.parameter_values = np.array([0.0, 0.0, 0.0, 0.0])
+    ocp.constraints.lh = np.array([0.0])
+    ocp.constraints.uh = np.array([1e6])
+
+    # Define slack bounds for the nonlinear constraint (dimension 1)
+    ocp.constraints.lsh = np.array([0.0])   # Lower slack bound (usually 0)
+    ocp.constraints.ush = np.array([0.0])   # Upper slack bound (set to 0 if you want slack to be penalized only, not free)
+    ocp.constraints.idxsh = np.array([0])   # Specify that the slack applies to the first (and only) nonlinear constraint
+
+    # Now define slack penalty weights (Zl and Zu) with dimension 1
+    ocp.cost.zl = np.array([0.0])           # Slack variable lower penalty reference
+    ocp.cost.zu = np.array([0.0])           # Slack variable upper penalty reference
+    ocp.cost.Zl = np.array([1000.0])        # Penalty weight for lower bound violation
+    ocp.cost.Zu = np.array([1000.0])        # Penalty weight for upper bound violation
+
+    # Add slack penalty settings for soft constraints:
+    model_ac.con_h_expr = obs_expr
 
     # define constraint
     #model_ac.con_h_expr = constraint.expr
@@ -40,7 +69,18 @@ def acados_settings(Tf, N):
     nsh = 2
 
     # set cost
-    Q = np.diag([100.0, 100.0, 1.0, 100.0, 1.0, 1.0, 1.0, 1.0, 1.0, 500.0, 1.0, 1.0])
+    Q = np.diag([5.0, # State x
+                  5.0, # State y
+                    1.0, # psi
+                      2.0, # u
+                        0.1, # v
+                          0.1, # r
+                            0.1, # chi
+                              0.1, # chi_s
+                                0.1, #chi_c
+                                  0.1, # cross-track error
+                                    0.5, # port thruster
+                                      0.5]) # stbd thruster
     
     R = np.eye(nu)
     R[0, 0] = 0.001

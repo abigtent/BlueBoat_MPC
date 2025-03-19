@@ -10,8 +10,8 @@ from lidar_simulator import LidarSimulator
 Tf = 10.0   # prediction horizon [s]
 N = 100     # number of discretization steps
 T = 100.0    # maximum simulation time [s]
-los_lookahead = 30.0  # Lookahead distance for LOS guidance
-thresh_next_wp = 1.0  # Threshold to switch waypoints
+los_lookahead = 20.0  # Lookahead distance for LOS guidance
+thresh_next_wp = 5.0  # Threshold to switch waypoints
 
 # load acados model and solver
 constraint, model, acados_solver = acados_settings(Tf, N)
@@ -59,18 +59,28 @@ for i in range(Nsim):
     x0_sol = acados_solver.get(0, "x")
     current_position = x0_sol[:2]  # assume first two entries are x and y
     current_heading = x0_sol[2]
+
+    #distance_to_wp = np.linalg.norm(np.array(current_position) - np.array(waypoints[current_wp_idx]))
+    #print(f"Distance to WP {current_wp_idx}: {distance_to_wp}, Threshold: {thresh_next_wp}")
     
     # Compute desired heading using Line of Sight (LOS) guidance
     #chi_d, current_wp_idx, wp_next = los_guidance(current_position[0], current_position[1], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
-    psi_d, current_wp_idx, cross_track_error, wp_next = los_guidance(current_position[0], current_position[1], x0_sol[2], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
+    psi_d, current_wp_idx, cross_track_error, wp_next= los_guidance(current_position[0], current_position[1], x0_sol[2], waypoints, current_wp_idx, los_lookahead, thresh_next_wp)
     #alpha_d = pi_p
  
     #chi_d = ssa(chi_d)
-   
+    #print("Current WP: ", current_wp_idx)
+    #print("Current Position: ", current_position)
+    #print("Current Heading: ", current_heading)
+    #print("Desired Heading: ", psi_d)
+    #print("Cross Track Error: ", cross_track_error)
+    #print("Next WP: ", wp_next)
     
     # Update target_state x and y based on the current waypoint.
     target_state[0] = waypoints[current_wp_idx, 0]
     target_state[1] = waypoints[current_wp_idx, 1]
+    #target_state[0] = wp_next[0]
+    #target_state[1] = wp_next[1]
     target_state[3] = u_d
     target_state[6] = psi_d
     target_state[7] = np.sin(psi_d)
@@ -138,4 +148,3 @@ print("Simulation time: {:.4f} s".format(Tf * Nsim / N))
 #if os.environ.get("ACADOS_ON_TRAVIS") is None:
  #   import matplotlib.pyplot as plt
   #  plt.show()
-

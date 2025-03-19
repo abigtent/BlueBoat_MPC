@@ -4,8 +4,8 @@ def wp_selector(x_pos, y_pos, waypoints, current_wp_idx, thresh_next_wp):
     num_wp = waypoints.shape[0]
 
     # prevent index overflow explicitly
-    if current_wp_idx >= num_wp - 1:
-        current_wp_idx = num_wp - 2
+    if current_wp_idx >= len(waypoints) - 1:
+        current_wp_idx = len(waypoints) - 1
 
     wp_curr = waypoints[current_wp_idx]
     wp_next = waypoints[current_wp_idx + 1]

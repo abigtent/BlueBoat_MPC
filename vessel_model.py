@@ -44,9 +44,13 @@ def usv_model():
     stbd_thruster_dot = MX.sym('stbd_thruster_dot')
     U = vertcat(port_thruster_dot, stbd_thruster_dot)
     
-    # Parameters (desired course angle)
-    alpha = MX.sym('alpha')
-    p = alpha
+   # === Parameters ===
+    # Desired course angle and obstacle parameters (to be updated via LiDAR)
+    alpha = MX.sym('alpha')   # desired course angle
+    x_obs = MX.sym('x_obs')   # obstacle x-position
+    y_obs = MX.sym('y_obs')   # obstacle y-position
+    R_obs = MX.sym('R_obs')   # obstacle radius
+    p = vertcat(alpha, x_obs, y_obs, R_obs)
 
     # ----------------------
     # Model Equations
@@ -127,10 +131,10 @@ def usv_model():
     # ----------------------
     model.u_min = 0
     model.u_max = 2.0
-    model.thrust_port_min = -1000
-    model.thrust_stbd_min = -1000
-    model.thrust_port_max = 1000
-    model.thrust_stbd_max = 1000
+    model.thrust_port_min = -30
+    model.thrust_stbd_min = -30
+    model.thrust_port_max = 30
+    model.thrust_stbd_max = 30
 
     model.x0 = np.zeros(12)
 
