@@ -37,24 +37,3 @@ class LidarSimulator:
                         if 0 < distance_along_ray < distances[i]:
                             distances[i] = max(distance_along_ray, 0.1)  # Ensure non-negative distances                 
         return distances
-
-    def get_inflated_obstacles(self, boat_x, boat_y, boat_psi):
-        """
-        Uses the Lidar scan to create a list of obstacles with inflated radii.
-        Each valid detection is converted into an obstacle point with a safety radius.
-        """
-        distances = self.sense_obstacles(boat_x, boat_y, boat_psi)
-        inflated_obstacles = []
-
-        # Loop over each ray and convert the valid measurements to global coordinates.
-        for i, d in enumerate(distances):
-            # Only consider detections that are less than the maximum range.
-            if d < self.max_range:
-                # Global angle for the current ray.
-                global_angle = boat_psi + self.angles[i]
-                x_hit = boat_x + d * np.cos(global_angle)
-                y_hit = boat_y + d * np.sin(global_angle)
-                # Create an obstacle with the inflated radius.
-                inflated_obstacles.append((x_hit, y_hit, self.inflation_radius))
-        return inflated_obstacles
-    

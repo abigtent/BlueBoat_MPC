@@ -1,25 +1,17 @@
 import numpy as np
 
 def wp_selector(x_pos, y_pos, waypoints, current_wp_idx, thresh_next_wp):
-    num_wp = waypoints.shape[0]
-
-    # prevent index overflow explicitly
-    if current_wp_idx >= len(waypoints) - 1:
-        current_wp_idx = len(waypoints) - 1
 
     wp_curr = waypoints[current_wp_idx]
-    wp_next = waypoints[current_wp_idx + 1]
-
-    # Corrected: distance from vessel to next waypoint explicitly
-    dist_to_next_wp = np.linalg.norm(np.array([x_pos, y_pos]) - wp_next)
-
-    if dist_to_next_wp < thresh_next_wp and current_wp_idx < num_wp - 2:
-        current_wp_idx += 1
-        wp_curr = waypoints[current_wp_idx]
+    if current_wp_idx < len(waypoints) - 1:
         wp_next = waypoints[current_wp_idx + 1]
     else:
-        wp_curr = waypoints[current_wp_idx]
-        wp_next = waypoints[min(current_wp_idx + 1, num_wp - 1)]
+        wp_next = wp_curr 
+
+    dist_to_next_wp = np.linalg.norm(np.array([x_pos, y_pos]) - wp_curr)
+
+    if dist_to_next_wp < thresh_next_wp and current_wp_idx < len(waypoints) - 1:
+        current_wp_idx += 1
 
     return wp_next, wp_curr, current_wp_idx
         
@@ -50,30 +42,4 @@ def los_guidance(x_pos, y_pos, waypoints, current_wp_idx, los_lookahead, thresh_
     
     chi_d = pi_p - np.arctan(Kp * e_y)
 
-    return chi_d, current_wp_idx, cross_track_error, wp_next
-
-
-def ssa(angle, unit='rad'):
-    """
-    Smallest-Signed Angle (SSA):
-    Maps an angle to the interval [-pi, pi) for radians or [-180, 180) for degrees.
-    
-    Parameters:
-        angle (float): The angle to be wrapped.
-        unit (str, optional): The unit of the angle. Use 'rad' for radians (default) or 'deg' for degrees.
-    
-    Returns:
-        float: The wrapped angle.
-    
-    Examples:
-        >>> ssa(4 * math.pi)
-        0.0
-        >>> ssa(190, 'deg')
-        -170.0
-    """
-    if unit == 'rad':
-        return ((angle + np.pi) % (2 * np.pi)) - np.pi
-    elif unit == 'deg':
-        return ((angle + 180) % 360) - 180
-    else:
-        raise ValueError(f"Invalid unit argument: '{unit}'. Unit must be either 'deg' or 'rad'.")
+    return chi_d, pi_p, current_wp_idx, cross_track_error

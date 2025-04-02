@@ -49,8 +49,8 @@ def usv_model():
     alpha = MX.sym('alpha')   # desired course angle
     x_obs = MX.sym('x_obs')   # obstacle x-position
     y_obs = MX.sym('y_obs')   # obstacle y-position
-    R_obs = MX.sym('R_obs')   # obstacle radius
-    p = vertcat(alpha, x_obs, y_obs, R_obs)
+    r_obs = MX.sym('R_obs')   # obstacle radius
+    p = vertcat(alpha, x_obs, y_obs, r_obs)
 
     # ----------------------
     # Model Equations
@@ -92,7 +92,7 @@ def usv_model():
     nu_dot = mtimes(inv(M_mat), tau - mtimes(N_mat, nu))
 
     # Course angle dynamics explicitly
-    chi_dot = vertcat(r, r * np.cos(chi), -r * np.sin(chi))
+    chi_dot = vertcat(r, r * chi_c, -r * chi_s)
 
     # Cross-track error dynamics
     cross_error_dot = -(u * np.cos(psi) - v * np.sin(psi)) * np.sin(alpha)  + (u * np.sin(psi) + v * np.cos(psi)) * np.cos(alpha)
@@ -108,6 +108,10 @@ def usv_model():
         cross_error_dot, # cross-track error dynamics
         thruster_dyn     # thruster state dynamics
     )
+
+    # ----------------------
+    r_v = 3.0
+    constraint.expr = vertcat((x - x_obs)**2 + (y - y_obs)**2 - (r_obs + r_v)**2)
 
     # State derivative placeholders
     xdot = MX.sym('xdot', 12)
@@ -129,12 +133,12 @@ def usv_model():
     # ----------------------
     # Model Bounds & Initial Conditions
     # ----------------------
-    model.u_min = 0
-    model.u_max = 2.0
-    model.thrust_port_min = -30
-    model.thrust_stbd_min = -30
-    model.thrust_port_max = 30
-    model.thrust_stbd_max = 30
+    model.u_min = -1.5
+    model.u_max = 1.5
+    model.thrust_port_min = -100
+    model.thrust_stbd_min = -100
+    model.thrust_port_max = 100
+    model.thrust_stbd_max = 100
 
     model.x0 = np.zeros(12)
 

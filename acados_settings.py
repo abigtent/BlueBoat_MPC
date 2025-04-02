@@ -26,7 +26,7 @@ def acados_settings(Tf, N):
     ocp.model = model_ac
 
     # --- Obstacle Parameters ---
-    r_v   = 0.5    # Vessel radius
+    r_v   = 3.0    # Vessel radius
 
     x_pos = model_ac.x[0]
     y_pos = model_ac.x[1]
@@ -34,18 +34,18 @@ def acados_settings(Tf, N):
     y_obs = model_ac.p[2]
     r_obs = model_ac.p[3]
 
-    obs_expr = (x_pos - x_obs)**2 + (y_pos - y_obs)**2 - (r_obs + r_v)**2
-    #model_ac.con_h_expr = obs_expr
-    #___________________
+    #model_ac.con_h_expr = (x_pos - x_obs)**2 + (y_pos - y_obs)**2 - (r_obs + r_v)**2 
+    model_ac.con_h_expr = constraint.expr
     ocp.parameter_values = np.array([0.0, 0.0, 0.0, 0.0])
-    
-    slack_weight = np.array([1e3])
+   
+
+    slack_weight = np.array([50.0])
     ocp.cost.Zl = slack_weight
     ocp.cost.Zu = slack_weight
-    ocp.cost.zl = slack_weight
-    ocp.cost.zu = slack_weight
+    ocp.cost.zl = np.array([0.0])
+    ocp.cost.zu = np.array([0.0])
     
-    slack_bounds = np.array([5*np.pi/180])
+    #slack_bounds = np.array([5*np.pi/180])
     #ocp.constraints.lsbx = -slack_bounds # Slack variable lower bounds
     #ocp.constraints.usbx = slack_bounds # Slack variable upper bounds
     #ocp.constraints.idxsbx = np.array([0]) # Index of state variable the soft bounds apply to
@@ -54,20 +54,8 @@ def acados_settings(Tf, N):
 
     # Define slack bounds for the nonlinear constraint (dimension 1)
     ocp.constraints.lsh = np.array([0.0])   # Lower slack bound (usually 0)
-    ocp.constraints.ush = np.array([0.0])   # Upper slack bound (set to 0 if you want slack to be penalized only, not free)
+    ocp.constraints.ush = np.array([0.1])   # Upper slack bound (set to 0 if you want slack to be penalized only, not free)
     ocp.constraints.idxsh = np.array([0])   # Specify that the slack applies to the first (and only) nonlinear constraint
-
-    # Now define slack penalty weights (Zl and Zu) with dimension 1
-    #ocp.cost.zl = np.array([0.0])           # Slack variable lower penalty reference
-    #ocp.cost.zu = np.array([0.0])           # Slack variable upper penalty reference
-    #ocp.cost.Zl = np.array([1000.0])        # Penalty weight for lower bound violation
-    #ocp.cost.Zu = np.array([1000.0])        # Penalty weight for upper bound violation
-
-    # Add slack penalty settings for soft constraints:
-    model_ac.con_h_expr = obs_expr
-
-    # define constraint
-    #model_ac.con_h_expr = constraint.expr
 
     # set dimensions
     nx = model.x.rows()
@@ -80,16 +68,16 @@ def acados_settings(Tf, N):
     nsh = 2
 
     # set cost
-    Q = np.diag([5.0, # State x
-                  5.0, # State y
-                    1.0, # psi
-                      5.0, # u
+    Q = np.diag([10.0, # State x
+                  10.0, # State y
+                    0.1, # psi
+                      1.0, # u
                         0.1, # v
                           0.1, # r
                             0.1, # chi
                               0.1, # chi_s
                                 0.1, #chi_c
-                                  0.5, # cross-track error
+                                  5.0, # cross-track error
                                     0.1, # port thruster
                                       0.1]) # stbd thruster
     
@@ -97,7 +85,7 @@ def acados_settings(Tf, N):
     R[0, 0] = 0.1 # Penalize change in port thruster
     R[1, 1] = 0.1 # Penalize change in stbd thruster
 
-    Qe = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    Qe = np.diag([1.0, 1.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 
 
     ocp.cost.cost_type = "LINEAR_LS"
@@ -131,29 +119,9 @@ def acados_settings(Tf, N):
     ocp.cost.yref_e = np.zeros((nx))
 
     # Setting constraints and applying them to the corresponding state and input variables
-    ocp.constraints.lbx = np.array([model.u_min])
-    ocp.constraints.ubx = np.array([model.u_max])
-    ocp.constraints.idxbx = np.array([3])
-    ocp.constraints.lbu = np.array([model.thrust_port_min, model.thrust_stbd_min])
-    ocp.constraints.ubu = np.array([model.thrust_port_max, model.thrust_stbd_max])
-    ocp.constraints.idxbu = np.array([0, 1])
-
-    # ocp.constraints.lsbx=np.zero s([1])
-    # ocp.constraints.usbx=np.zeros([1])
-    # ocp.constraints.idxsbx=np.array([1])
-    '''ocp.constraints.lh = np.array(
-        [
-            constraint.e_r_min,
-        ]
-    )
-    ocp.constraints.uh = np.array(
-        [
-            constraint.e_r_max,
-        ]
-    )'''
-    '''ocp.constraints.lsh = np.zeros(nsh)
-    ocp.constraints.ush = np.zeros(nsh)
-    ocp.constraints.idxsh = np.array([0, 2])'''
+    ocp.constraints.lbx = np.array([model.u_min, model.thrust_port_min, model.thrust_stbd_min])
+    ocp.constraints.ubx = np.array([model.u_max, model.thrust_port_max, model.thrust_stbd_max])
+    ocp.constraints.idxbx = np.array([3, 10, 11])
 
     # set intial condition
     ocp.constraints.x0 = model.x0

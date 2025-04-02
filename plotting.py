@@ -32,8 +32,8 @@ def plotFnc(simX, simU, simError, t):
     # --- Plot control inputs ---
     plt.subplot(3, 1, 2)
     # Assuming control inputs: [port_thruster, stbd_thruster]
-    plt.plot(t, simU[:, 0], label='Port thruster [N]')
-    plt.plot(t, simU[:, 1], label='Stbd thruster [N]')
+    plt.plot(t, simX[:, 10], label='Port thruster [N]')
+    plt.plot(t, simX[:, 11], label='Stbd thruster [N]')
     plt.title('Control Inputs')
     plt.xlabel('Time [s]')
     plt.ylabel('Control input')

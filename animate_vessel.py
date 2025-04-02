@@ -7,7 +7,7 @@ import matplotlib.patches as patches
 def animate_vessel(simX, waypoints, lidar_simulator=None, interval=100):
     """
     Animate the vessel's position over time, draw waypoints, render lidar rays,
-    and display obstacles.
+    and display obstacles with color changing upon detection.
     
     Parameters:
         simX (np.ndarray): Simulation data for states (Nsim x nx). 
@@ -23,14 +23,15 @@ def animate_vessel(simX, waypoints, lidar_simulator=None, interval=100):
     ax.set_ylabel("y [m]")
     ax.set_title("Vessel Position and Lidar Animation")
     ax.grid(True)
-    
-    # Display obstacles as circles if lidar_simulator is provided.
+
+    # Store obstacle patches for dynamic color change
+    obstacle_patches = []
     if lidar_simulator is not None and hasattr(lidar_simulator, 'obstacles'):
         for obs in lidar_simulator.obstacles:
-            # Each obstacle is expected as a tuple (x, y, radius)
             circle = plt.Circle((obs[0], obs[1]), obs[2], color='gray', alpha=0.5, fill=True)
+            obstacle_patches.append(circle)
             ax.add_patch(circle)
-    
+
     # Determine plot limits from waypoints (with padding)
     padding = 1.0
     wp_x_min, wp_x_max = np.min(waypoints[:, 0]), np.max(waypoints[:, 0])
@@ -39,56 +40,48 @@ def animate_vessel(simX, waypoints, lidar_simulator=None, interval=100):
     margin_y = padding * (wp_y_max - wp_y_min) if wp_y_max > wp_y_min else 1.0
     ax.set_xlim(wp_x_min - margin_x, wp_x_max + margin_x)
     ax.set_ylim(wp_y_min - margin_y, wp_y_max + margin_y)
-    
-    # Plot the waypoints and connecting path.
+
+    # Plot waypoints and connecting path
     ax.plot([waypoints[0, 0]], [waypoints[0, 1]], 'k--', label="Start")
     ax.plot(waypoints[:, 0], waypoints[:, 1], 'k--', label="Path")
     ax.plot(waypoints[:, 0], waypoints[:, 1], 'ko', label="Waypoints")
-    
-    # Create objects for the vessel marker and its trail.
+
+    # Vessel marker and trail
     trail_line, = ax.plot([], [], 'b-', linewidth=2, label="Trail")
     vessel_marker, = ax.plot([], [], 'bo', markersize=8, label="Vessel")
-    
-    # Pre-create line objects for each lidar ray if a simulator is provided.
+
+    # Lidar rays
     lidar_lines = []
     if lidar_simulator is not None:
         for _ in range(lidar_simulator.num_rays):
             line, = ax.plot([], [], 'r-', linewidth=1)
             lidar_lines.append(line)
-    
+
     ax.legend()
 
     def init():
-        """Initialization function for the animation."""
         trail_line.set_data([], [])
         vessel_marker.set_data([], [])
         for line in lidar_lines:
             line.set_data([], [])
-        return [trail_line, vessel_marker] + lidar_lines
+        return [trail_line, vessel_marker] + lidar_lines + obstacle_patches
 
     def update(frame):
-        """Update function for each frame."""
-        # Get current vessel position and heading.
-        x = simX[frame, 0]
-        y = simX[frame, 1]
+        x, y = simX[frame, 0], simX[frame, 1]
         psi = simX[frame, 2] if simX.shape[1] > 2 else 0.0
-        
-        # Update vessel trail and marker.
-        x_data = simX[:frame+1, 0]
-        y_data = simX[:frame+1, 1]
-        trail_line.set_data(x_data, y_data)
+
+        # Update trail and vessel position
+        trail_line.set_data(simX[:frame+1, 0], simX[:frame+1, 1])
         vessel_marker.set_data([x], [y])
-        
-        # Update lidar rays using the simpler representation.
+
         if lidar_simulator is not None:
             distances = lidar_simulator.sense_obstacles(x, y, psi)
             for j, (dist, angle_offset) in enumerate(zip(distances, lidar_simulator.angles)):
                 angle = psi + angle_offset
-                end_x = x + dist * np.cos(angle)
-                end_y = y + dist * np.sin(angle)
+                end_x, end_y = x + dist * np.cos(angle), y + dist * np.sin(angle)
                 lidar_lines[j].set_data([x, end_x], [y, end_y])
-                
-                # Set ray color based on the measured distance.
+
+                # Lidar ray color based on distance
                 if 15 < dist <= 20:
                     lidar_lines[j].set_color('g')
                 elif 10 < dist <= 15:
@@ -99,11 +92,24 @@ def animate_vessel(simX, waypoints, lidar_simulator=None, interval=100):
                     lidar_lines[j].set_color('r')
                 else:
                     lidar_lines[j].set_color('r')
-                    
-        return [trail_line, vessel_marker] + lidar_lines
+
+            # Obstacle detection (3m detection range)
+            detection_range = 3.0
+            for obs_patch, obs_info in zip(obstacle_patches, lidar_simulator.obstacles):
+                obs_x, obs_y, obs_radius = obs_info
+                distance_to_obs_edge = np.hypot(x - obs_x, y - obs_y) - obs_radius
+                if distance_to_obs_edge <= detection_range:
+                    obs_patch.set_color('red')
+                    obs_patch.set_alpha(0.8)
+                else:
+                    obs_patch.set_color('gray')
+                    obs_patch.set_alpha(0.5)
+
+        return [trail_line, vessel_marker] + lidar_lines + obstacle_patches
 
     ani = animation.FuncAnimation(fig, update, frames=len(simX),
                                   init_func=init, blit=True, interval=interval)
+    ax.set_aspect('equal', adjustable='box')
 
     plt.show()
 
