@@ -1,8 +1,8 @@
 # **FML_AutonomousCar**
-Code and documentation for the Future Mobility Lab scale test vehicle used for SLAM, motion planning and controls research. This repo assumes installation of ROS 2 Humble Hawksbill on an Ubuntu 22.04 machine. Tested on a Raspberry Pi 4b with 8 GB RAM.
+Code and documentation for a NMPC controller implementation for the BlueBoat research vessel. This repo assumes installation of ROS 2 Humble Hawksbill on an Ubuntu 22.04 machine. Tested on a NVIDIA Jetson Orin NX with 16GB of RAM.
 
 # Installation:
-This repo requires the installation of [ROS2 Humble Hawksbill](https://docs.ros.org/en/humble/index.html) on [Ubuntu 22.04 LTS Server or Ubuntu 22.04 LTS Desktop](https://releases.ubuntu.com/jammy/) running on a Raspberry Pi 4b with 8 GB RAM.
+This repo requires the installation of [ROS2 Humble Hawksbill](https://docs.ros.org/en/humble/index.html) on [Ubuntu 22.04 LTS Server or Ubuntu 22.04 LTS Desktop](https://releases.ubuntu.com/jammy/) running on a NVIDIA Jetson Orin NX with 16GB of RAM.
 
 ```
 sudo apt install git -y && git clone git@github.com:FutureMobilityLab/FML_AutonomousCar.git
