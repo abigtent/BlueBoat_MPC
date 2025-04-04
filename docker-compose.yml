@@ -1,0 +1,23 @@
+#version: '3.8'  # Create a ROS 2 + ACADOS container
+
+services:
+  ros2:
+    build: .
+    container_name: ros2_humble
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_LOCALHOST_ONLY=0
+      - PYTHONUNBUFFERED=1  # Optional: better Python logging
+    networks:
+      - ros_network
+    privileged: true
+    volumes:
+      - ./ros2_ws:/root/ros2_ws  # Mount entire workspace (not just src/)
+    tty: true
+    stdin_open: true
+    working_dir: /root/ros2_ws
+    command: /bin/bash
+
+networks:
+  ros_network:
+    driver: bridge

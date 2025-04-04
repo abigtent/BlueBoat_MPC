@@ -1,4 +1,4 @@
-import time, os
+import time
 import numpy as np
 from acados_settings import *
 from plotting import plotFnc as plot
