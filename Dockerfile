@@ -1,3 +1,4 @@
+# Base image
 FROM ros:humble
 
 # Environment setup
@@ -23,40 +24,42 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-geometry-msgs \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Install CasADi via pip
+# Install CasADi
 RUN pip3 install casadi
 
-# Build ACADOS from source
+# Build and install acados
 WORKDIR /root
 RUN git clone https://github.com/acados/acados.git && \
     cd acados && \
     git submodule update --init --recursive && \
     mkdir -p build && cd build && \
     cmake .. -DACADOS_WITH_QPOASES=ON -DACADOS_PYTHON=ON && \
-    make -j$(nproc)
+    make -j$(nproc) && \
+    make install
 
-# Install acados Python interface in editable mode
-# Install setuptools + setuptools_scm with compatible versions
+# Install Python bindings for acados
 RUN pip3 install --upgrade pip wheel cython && \
-    pip3 install "setuptools<69" "setuptools_scm<8"
+    pip3 install "setuptools<69" "setuptools_scm<8" && \
+    pip3 install --no-build-isolation -e /root/acados/interfaces/acados_template
 
-# Use --no-build-isolation to prevent setuptools_scm conflicts
-RUN pip3 install --no-build-isolation -e /root/acados/interfaces/acados_template
-
-# Set ACADOS environment variables
+# Set acados environment variables
 ENV ACADOS_SOURCE_DIR="/root/acados"
-ENV LD_LIBRARY_PATH="/root/acados/lib"
-ENV PYTHONPATH="/root/acados/interfaces/acados_template"
+ENV LD_LIBRARY_PATH="/root/acados/lib:$LD_LIBRARY_PATH"
+ENV PYTHONPATH="/root/acados/interfaces/acados_template:$PYTHONPATH"
+ENV PATH="/root/acados/bin:$PATH"
 
 # Copy and build ROS 2 workspace
 WORKDIR /root/ros2_ws
 COPY ./ros2_ws ./ros2_ws
-
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build"
 
-# Automatically source ROS + workspace on shell entry
-#RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
- #   echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
+# Auto-source ROS & workspace on container entry
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
+    echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc && \
+    echo "export ACADOS_SOURCE_DIR=/root/acados" >> ~/.bashrc && \
+    echo "export LD_LIBRARY_PATH=/root/acados/lib:\$LD_LIBRARY_PATH" >> ~/.bashrc && \
+    echo "export PYTHONPATH=/root/acados/interfaces/acados_template:\$PYTHONPATH" >> ~/.bashrc && \
+    echo "export PATH=/root/acados/bin:\$PATH" >> ~/.bashrc
 
-CMD ["bash"]
+CMD ["/bin/bash"]
+
