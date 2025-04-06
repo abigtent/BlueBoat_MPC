@@ -17,4 +17,32 @@ The ROS node is built and run entirely inside a Docker container, managed throug
 
 ✅ Tested on Jetson Orin NX (16GB RAM) with Ubuntu 22.04 and ROS 2 Humble
 
+## 📦 Installation: 
+
+### Prerequisites
+
+Docker and Docker Compose installed on your Jetson Orin NX
+
+### 🔧 Build the Docker Image
+
+Clone the repository:
+```bash
+git clone https://github.com/abigtent/BlueBoat_MPC.git
+cd Blueboat_MPC
+```
+
+Build the docker image with:
+```bash
+docker-compose build
+```
+
+### Running the image:
+```bash
+docker-compose up
+```
+
+Open a bash shell inside the running container:
+```bash
+docker exec -it nmpc_controller bash
+```
 

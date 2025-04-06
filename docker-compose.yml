@@ -3,7 +3,7 @@ services:
   ros2:
     platform: linux/amd64
     build: .
-    container_name: ros2_humble
+    container_name: nmpc_controller
     environment:
       - ROS_DOMAIN_ID=0
       - ROS_LOCALHOST_ONLY=0
