@@ -176,3 +176,5 @@ print("Simulation time: {:.4f} s".format(Tf * Nsim / N))
 #if os.environ.get("ACADOS_ON_TRAVIS") is None:
  #   import matplotlib.pyplot as plt
   #  plt.show()
+
+
