@@ -3,7 +3,7 @@ This repository contains a real-time Nonlinear Model Predictive Control (NMPC) i
 
 The ROS node is built and run entirely inside a Docker container, managed through Docker Compose for easy deployment.
 
-# Features:
+## Features:
 
 ✅ Real-time NMPC using acados
 
