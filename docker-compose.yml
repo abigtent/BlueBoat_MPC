@@ -7,16 +7,17 @@ services:
     environment:
       - ROS_DOMAIN_ID=0
       - ROS_LOCALHOST_ONLY=0
-      - PYTHONUNBUFFERED=1  # Optional: better Python logging
+      - PYTHONUNBUFFERED=1  
     networks:
       - ros_network
     privileged: true
     volumes:
-      - ./ros2_ws:/root/ros2_ws  # Mount entire workspace (not just src/)
+      - ./ros2_ws:/root/ros2_ws  
     tty: true
     stdin_open: true
     working_dir: /root/ros2_ws
     command: /bin/bash
+
 
 networks:
   ros_network:

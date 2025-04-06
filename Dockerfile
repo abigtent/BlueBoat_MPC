@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     git \
+    wget \
     libblas-dev \
     liblapack-dev \
     libtool \
@@ -37,6 +38,10 @@ RUN git clone https://github.com/acados/acados.git && \
     make -j$(nproc) && \
     make install
 
+# Install tera template renderer
+RUN wget -O /root/acados/bin/t_renderer https://github.com/acados/tera_renderer/releases/download/v0.0.34/t_renderer-v0.0.34-linux && \
+    chmod +x /root/acados/bin/t_renderer
+
 # Install Python bindings for acados
 RUN pip3 install --upgrade pip wheel cython && \
     pip3 install "setuptools<69" "setuptools_scm<8" && \
@@ -50,7 +55,7 @@ ENV PATH="/root/acados/bin:$PATH"
 
 # Copy and build ROS 2 workspace
 WORKDIR /root/ros2_ws
-COPY ./ros2_ws ./ros2_ws
+#COPY ./ros2_ws/ ./
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build"
 
 # Auto-source ROS & workspace on container entry

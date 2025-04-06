@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 
 from .acados_settings import acados_settings
-
+from .guidance import los_guidance
 
 class NMPCNode(Node):
     def __init__(self):
@@ -16,6 +16,8 @@ class NMPCNode(Node):
         self.N = 100
         self.T = 10.0
         self.Nsim = int(self.T * self.N / self.Tf)
+        self.los_lookahead = 20.0  # Lookahead distance for LOS guidance
+        self.thresh_next_wp = 10.0  # Threshold to switch waypoints
 
         # Load waypoints
         pkg_dir = os.path.dirname(os.path.realpath(__file__))

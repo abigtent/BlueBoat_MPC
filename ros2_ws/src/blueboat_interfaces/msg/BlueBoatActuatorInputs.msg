@@ -1,0 +1,3 @@
+std_msgs/Header header
+float64 stb_prop_force
+float64 port_prop_force
