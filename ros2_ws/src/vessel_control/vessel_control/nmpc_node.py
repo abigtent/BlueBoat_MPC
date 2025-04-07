@@ -4,12 +4,11 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 
-# Import your acados settings and guidance functions
 from .acados_settings import acados_settings
 from .guidance import los_guidance
 
-# Import your custom ROS2 messages (adjust package names as needed)
-from blueboat_interfaces.msg import BlueBoatState, BlueBoatThrusterInputs
+from blueboat_interfaces.msg import BlueBoatState, BlueBoatActuatorInputs
+
 
 class NMPCNode(Node):
     def __init__(self):
@@ -24,7 +23,7 @@ class NMPCNode(Node):
         self.get_logger().info("BlueBoatState subscriber started.")
    
         self.pub_thruster = self.create_publisher(
-            BlueBoatThrusterInputs, # message type
+            BlueBoatActuatorInputs, # message type
             'BlueBoatThrusterInputs', # topic name
             10
         )
@@ -52,7 +51,6 @@ class NMPCNode(Node):
         self.get_logger().info(f"Waypoints loaded from {waypoints_path}.")
 
         # Define target state and control
-        # (This example uses a 12-dimensional target state; adjust indices as needed.)
         self.target_state = np.array([
             self.waypoints[self.current_wp_idx, 0],
             self.waypoints[self.current_wp_idx, 1],
@@ -73,11 +71,10 @@ class NMPCNode(Node):
         self.get_logger().info(f"NMPC node initialized with desired surge velocity {self.u_d} m/s.")
 
     def state_callback(self, msg: BlueBoatState):
+        
         self.current_state = np.array([msg.x, msg.y, msg.psi, msg.u, msg.v, msg.r])
-        # Compute the desired heading using LOS guidance.
-        # Here, los_guidance returns: desired heading (chi_d), guidance angle (alpha),
-        # updated waypoint index, and cross-track error.
 
+        # Compute the desired heading using LOS guidance.
         chi_d, alpha, self.current_wp_idx, cross_track_error = los_guidance(
             self.current__state[0],
             self.current_y_pos[1],
