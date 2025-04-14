@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     python3-colcon-common-extensions \
     build-essential \
     cmake \
+    curl \
     git \
     wget \
     libblas-dev \
@@ -39,10 +40,19 @@ RUN git clone https://github.com/acados/acados.git && \
     make install
 
 # Install tera template renderer
+# Install Rust using rustup (this installs both rustc and cargo)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Add Cargo’s bin directory to the PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Clone tera_renderer, build it, then copy the binary
 WORKDIR /root/acados/bin/
+
 RUN git clone https://github.com/acados/tera_renderer.git && \
-    cargo build --verbose --release
-RUN cp /root/acados/bin/tera_renderer/target/release/t_renderer /root/acados/bin/
+    cd tera_renderer && \
+    cargo build --verbose --release && \
+    cp target/release/t_renderer /root/acados/bin/t_renderer
 
 
 # Install Python bindings for acados
