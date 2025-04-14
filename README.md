@@ -41,8 +41,13 @@ docker compose build
 docker compose up
 ```
 
-Open a bash shell inside the running container:
+Open another bash shell:
 ```bash
 docker exec -it nmpc_controller bash
 ```
 
+### Running waypoint service
+```bash
+ros2 run ned_pkg waypoint_service_node
+ros2 service call /set_waypoints ned_pkg/srv/SetWaypoints "{filepath: '/src/ned_pkg/data/waypoints.csv'}"
+```
