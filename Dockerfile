@@ -63,6 +63,7 @@ ENV PATH="/root/acados/bin:$PATH"
 
 # Copy and build ROS 2 workspace
 WORKDIR /root/ros2_ws
+COPY ./ros2_ws/src /root/ros2_ws/src
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build"
 
 # Auto-source ROS & workspace on container entry
