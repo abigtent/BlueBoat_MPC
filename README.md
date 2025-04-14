@@ -33,12 +33,12 @@ cd BlueBoat_MPC
 
 Build the docker image with:
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### Running the image:
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Open a bash shell inside the running container:
