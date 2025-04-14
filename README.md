@@ -28,7 +28,7 @@ Docker and Docker Compose installed on your Jetson Orin NX
 Clone the repository:
 ```bash
 git clone https://github.com/abigtent/BlueBoat_MPC.git
-cd Blueboat_MPC
+cd BlueBoat_MPC
 ```
 
 Build the docker image with:
