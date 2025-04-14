@@ -39,8 +39,11 @@ RUN git clone https://github.com/acados/acados.git && \
     make install
 
 # Install tera template renderer
-#RUN wget -O /root/acados/bin/t_renderer https://github.com/acados/tera_renderer/releases/download/v0.0.34/t_renderer-v0.0.34-linux && \
-#    chmod +x /root/acados/bin/t_renderer
+WORKDIR /root/acados/bin/
+RUN git clone https://github.com/acados/tera_renderer.git && \
+    cargo build --verbose --release
+RUN cp /root/acados/bin/tera_renderer/target/release/t_renderer /root/acados/bin/
+
 
 # Install Python bindings for acados
 RUN pip3 install --upgrade pip wheel cython && \
