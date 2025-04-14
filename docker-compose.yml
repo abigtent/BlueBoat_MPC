@@ -1,7 +1,7 @@
 
 services:
   ros2:
-    platform: linux/amd64
+    platform: 
     build: .
     container_name: nmpc_controller
     environment:
