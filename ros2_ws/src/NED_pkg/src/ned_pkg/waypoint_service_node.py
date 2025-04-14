@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 import csv
 from pyproj import Transformer
-from your_ros2_pkg.srv import SetWaypoints
-from your_ros2_pkg.msg import GpsOrigin, Waypoint, WaypointArray
+from ned_pkg.srv import SetWaypoints
+from ned_pkg.msg import GpsOrigin, Waypoint, WaypointArray
 
 class WaypointServiceNode(Node):
     def __init__(self):
