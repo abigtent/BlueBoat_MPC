@@ -39,21 +39,16 @@ RUN git clone https://github.com/acados/acados.git && \
     make -j$(nproc) && \
     make install
 
-# Install tera template renderer
 # Install Rust using rustup (this installs both rustc and cargo)
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-# Add Cargo’s bin directory to the PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Clone tera_renderer, build it, then copy the binary
 WORKDIR /root/acados/bin/
-
 RUN git clone https://github.com/acados/tera_renderer.git && \
     cd tera_renderer && \
     cargo build --verbose --release && \
     cp target/release/t_renderer /root/acados/bin/t_renderer
-
 
 # Install Python bindings for acados
 RUN pip3 install --upgrade pip wheel cython && \
@@ -68,7 +63,6 @@ ENV PATH="/root/acados/bin:$PATH"
 
 # Copy and build ROS 2 workspace
 WORKDIR /root/ros2_ws
-#COPY ./ros2_ws/ ./
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build"
 
 # Auto-source ROS & workspace on container entry
@@ -80,4 +74,3 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
     echo "export PATH=/root/acados/bin:\$PATH" >> ~/.bashrc
 
 CMD ["/bin/bash"]
-
