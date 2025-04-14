@@ -1,0 +1,5 @@
+string filepath
+---
+WaypointArray waypoints
+GpsOrigin origin
+
