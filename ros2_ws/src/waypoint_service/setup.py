@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'ned_pkg'
+package_name = 'waypoint_service'
 
 setup(
     name=package_name,
@@ -18,7 +18,7 @@ setup(
     license='Apache License 2.0',
     entry_points={
         'console_scripts': [
-            'waypoint_service_node = ned_pkg.waypoint_service_node:main'
+            'waypoint_service_node = waypoint_service.waypoint_service_node:main'
         ],
     },
 )
