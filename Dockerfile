@@ -74,7 +74,7 @@ RUN pip3 install "setuptools<69" "setuptools_scm<8" wheel cython && \
     pip3 install --no-build-isolation -e /opt/acados/interfaces/acados_template
 
 # ------------------------------------------------------------------------------
-# 7) Create a non-root user and switch to it
+# 7) Create a non-root user
 # ------------------------------------------------------------------------------
 RUN groupadd --gid ${GROUP_ID} ${USERNAME} && \
     useradd --uid ${USER_ID} --gid ${GROUP_ID} -m -s /bin/bash ${USERNAME} && \
@@ -83,7 +83,7 @@ RUN groupadd --gid ${GROUP_ID} ${USERNAME} && \
 # ------------------------------------------------------------------------------
 # 8) Switch to user and copy in ROS 2 workspace
 # ------------------------------------------------------------------------------
-#USER ${USERNAME}
+USER ${USERNAME}
 WORKDIR /home/${USERNAME}/ros2_ws
 COPY --chown=${USERNAME}:${USERNAME} ./ros2_ws /home/${USERNAME}/ros2_ws
 
@@ -93,7 +93,7 @@ COPY --chown=${USERNAME}:${USERNAME} ./ros2_ws /home/${USERNAME}/ros2_ws
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build"
 
 # ------------------------------------------------------------------------------
-# 10) Auto-source on container entry
+# 10) Auto-source environment on container entry
 # ------------------------------------------------------------------------------
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/${USERNAME}/.bashrc && \
     echo "source /home/${USERNAME}/ros2_ws/install/setup.bash" >> /home/${USERNAME}/.bashrc && \
@@ -106,4 +106,3 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/${USERNAME}/.bashrc
 # 11) Final command
 # ------------------------------------------------------------------------------
 CMD ["/bin/bash"]
-

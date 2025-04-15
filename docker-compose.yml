@@ -1,4 +1,3 @@
-
 services:
   ros2:
     build: .
@@ -8,17 +7,10 @@ services:
       - ROS_LOCALHOST_ONLY=0
       - PYTHONUNBUFFERED=1  
     network_mode: host
-    #networks:
-     # - ros_network
     privileged: true
     volumes:
-      - ./ros2_ws:/root/ros2_ws  
+      - ./ros2_ws:/home/user/ros2_ws
     tty: true
     stdin_open: true
-    working_dir: /root/ros2_ws
+    working_dir: /home/user/ros2_ws
     command: /bin/bash
-
-
-#networks:
- # ros_network:
-  #  driver: bridge
