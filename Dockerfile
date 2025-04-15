@@ -82,7 +82,7 @@ RUN groupadd --gid ${GROUP_ID} ${USERNAME} && \
 # ------------------------------------------------------------------------------
 # 8) Switch to user and copy in ROS 2 workspace
 # ------------------------------------------------------------------------------
-USER ${USERNAME}
+#USER ${USERNAME}
 WORKDIR /home/${USERNAME}/ros2_ws
 COPY --chown=${USERNAME}:${USERNAME} ./ros2_ws /home/${USERNAME}/ros2_ws
 
