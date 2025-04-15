@@ -5,6 +5,13 @@ FROM ros:humble
 ENV ROS_DISTRO=humble
 ENV DEBIAN_FRONTEND=noninteractive
 
+# ------------------------------------------------------------------------------
+# 1) Create build-time args for user/group, so the container user matches your host
+# ------------------------------------------------------------------------------
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+ARG USERNAME=user
+
 # Install OS & ROS dependencies
 RUN apt-get update && apt-get install -y \
     python3-pip \
@@ -25,6 +32,17 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-std-msgs \
     ros-${ROS_DISTRO}-geometry-msgs \
     && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------------------------------------
+# 2) Create a non-root user with sudo privileges
+RUN groupadd --gid ${GROUP_ID} ${USERNAME} && \
+useradd --uid ${USER_ID} --gid ${GROUP_ID} -m -s /bin/bash ${USERNAME} && \
+apt-get update && apt-get install -y sudo && \
+echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Switch to the new user
+USER ${USERNAME}
 
 # Install CasADi
 RUN pip3 install casadi
@@ -76,5 +94,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
     echo "export LD_LIBRARY_PATH=/root/acados/lib:\$LD_LIBRARY_PATH" >> ~/.bashrc && \
     echo "export PYTHONPATH=/root/acados/interfaces/acados_template:\$PYTHONPATH" >> ~/.bashrc && \
     echo "export PATH=/root/acados/bin:\$PATH" >> ~/.bashrc
+
+
 
 CMD ["/bin/bash"]
