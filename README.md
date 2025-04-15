@@ -48,6 +48,6 @@ docker exec -it nmpc_controller bash
 
 ### Running waypoint service
 ```bash
-ros2 run ned_pkg waypoint_service_node
-ros2 service call /set_waypoints ned_pkg/srv/SetWaypoints "{filepath: '/src/ned_pkg/data/waypoints.csv'}"
+ros2 run waypoint_service waypoint_service_node
+ros2 service call /set_waypoints waypoint_interfaces/srv/SetWaypoints "{filepath: '/home/user/ros2_ws/src/waypoint_service/data/waypoints.csv'}"
 ```
