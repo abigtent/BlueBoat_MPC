@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     gfortran \
     python3-dev \
+    pyproj \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-std-msgs \
     ros-${ROS_DISTRO}-geometry-msgs \
