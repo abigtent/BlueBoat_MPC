@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-std-msgs \
     ros-${ROS_DISTRO}-geometry-msgs \
+    ros-${ROS_DISTRO}-ament-cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------------------------
