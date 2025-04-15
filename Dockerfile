@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     gfortran \
     python3-dev \
-    pyproj \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-std-msgs \
     ros-${ROS_DISTRO}-geometry-msgs \
@@ -29,6 +28,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install CasADi
 RUN pip3 install casadi
+
+# Install pymap3d
+RUN pip install pymap3d
 
 # Build and install acados
 WORKDIR /root

@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 import csv
-from pyproj import Transformer
+import pymap3d as pm
 from waypoint_interfaces.srv import SetWaypoints
 from waypoint_interfaces.msg import GpsOrigin, Waypoint, WaypointArray
 
@@ -29,30 +29,29 @@ class WaypointServiceNode(Node):
                 self.get_logger().error('CSV file is empty or invalid.')
                 return response
 
-            # First waypoint is origin
             origin_lat, origin_lon = waypoints[0]
+
             response.origin = GpsOrigin(
                 latitude=origin_lat,
                 longitude=origin_lon,
-                altitude=0.0  # default or fixed altitude if needed
-            )
-
-            transformer = Transformer.from_crs(
-                "epsg:4326",  # WGS84 lat/lon
-                f"+proj=tmerc +lat_0={origin_lat} +lon_0={origin_lon} +units=m +datum=WGS84",
-                always_xy=True
+                altitude=0.0  # Define if needed
             )
 
             waypoint_array = WaypointArray()
 
             for lat, lon in waypoints:
-                east, north = transformer.transform(lon, lat)
-                waypoint = Waypoint(x=north, y=east)  # NED: x=north, y=east
+                # pymap3d.geodetic2ned(lat, lon, alt, lat0, lon0, alt0)
+                north, east, down = pm.geodetic2ned(
+                    lat, lon, 0.0,  # waypoint altitude (0.0 if unknown)
+                    origin_lat, origin_lon, 0.0  # origin altitude (set accordingly)
+                )
+
+                waypoint = Waypoint(x=north, y=east)
                 waypoint_array.waypoints.append(waypoint)
 
             response.waypoints = waypoint_array
 
-            self.get_logger().info("Waypoints processed successfully (XY only).")
+            self.get_logger().info("Waypoints processed successfully with pymap3d.")
 
         except Exception as e:
             self.get_logger().error(f'Error processing waypoints: {e}')

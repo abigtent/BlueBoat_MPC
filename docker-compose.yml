@@ -7,8 +7,9 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_LOCALHOST_ONLY=0
       - PYTHONUNBUFFERED=1  
-    networks:
-      - ros_network
+    network_mode: host
+    #networks:
+     # - ros_network
     privileged: true
     volumes:
       - ./ros2_ws:/root/ros2_ws  
@@ -18,6 +19,6 @@ services:
     command: /bin/bash
 
 
-networks:
-  ros_network:
-    driver: bridge
+#networks:
+ # ros_network:
+  #  driver: bridge
