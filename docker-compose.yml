@@ -6,7 +6,6 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_LOCALHOST_ONLY=0
       - PYTHONUNBUFFERED=1  
-    #network_mode: host
     privileged: true
     volumes:
       - ./ros2_ws:/home/user/ros2_ws
