@@ -4,8 +4,8 @@ import rclpy
 from rclpy.node import Node
 import csv
 from pyproj import Transformer
-from ned_pkg.srv import SetWaypoints
-from ned_pkg.msg import GpsOrigin, Waypoint, WaypointArray
+from waypoint_interfaces.srv import SetWaypoints
+from waypoint_interfaces.msg import GpsOrigin, Waypoint, WaypointArray
 
 class WaypointServiceNode(Node):
     def __init__(self):
