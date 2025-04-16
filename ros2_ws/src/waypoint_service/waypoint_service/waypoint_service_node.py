@@ -46,7 +46,9 @@ class WaypointServiceNode(Node):
                     origin_lat, origin_lon, 0.0  # origin altitude (set accordingly)
                 )
 
-                waypoint = Waypoint(x=north, y=east)
+                waypoint = Waypoint()
+                waypoint.xn = north
+                waypoint.yn = east
                 waypoint_array.waypoints.append(waypoint)
 
             response.waypoints = waypoint_array
