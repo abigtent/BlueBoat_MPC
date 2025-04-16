@@ -1,2 +1,2 @@
-float64 xn
-float64 yn
+float64 x
+float64 y
