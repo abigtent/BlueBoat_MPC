@@ -47,8 +47,8 @@ class WaypointServiceNode(Node):
                 )
 
                 waypoint = Waypoint()
-                waypoint.xn = north
-                waypoint.yn = east
+                waypoint.x = north
+                waypoint.y = east
                 waypoint_array.waypoints.append(waypoint)
 
             response.waypoints = waypoint_array
