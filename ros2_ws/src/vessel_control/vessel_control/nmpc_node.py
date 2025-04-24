@@ -7,6 +7,7 @@ from rclpy.node import Node
 from .acados_settings import acados_settings
 from .guidance import los_guidance
 
+from waypoint_interfaces.srv import SetWaypoints
 from blueboat_interfaces.msg import BlueBoatState, BlueBoatActuatorInputs
 
 
@@ -14,6 +15,35 @@ class NMPCNode(Node):
     def __init__(self):
         super().__init__('nmpc_node')
 
+        # Create a client for the waypoint service
+        self.client = self.create_client(SetWaypoints, 'set_waypoints')
+        self.request = SetWaypoints.Request()
+        self.waypoints = []
+
+       # Wait for service to be available
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Service not available, waiting...')
+        
+        # Call the service to get waypoints
+        self.request.filepath = os.path.join(
+            os.path.dirname(__file__), 'waypoints.csv'
+        )
+
+        self.future = self.client.call_async(self.request)
+        while rclpy.ok():
+            rclpy.spin_once(self)
+            if self.future.done():
+                if self.future.result() is not None:
+                    self.waypoints = np.array(self.future.result().waypoints)
+                    self.get_logger().info(f"Waypoints loaded: {self.waypoints}")
+                else:
+                    self.get_logger().error('Service call failed')
+                break
+
+        self.current_wp_idx = 0
+
+#---------------------------------------------------------------#
+        # Create a subscriber for the BlueBoatState message
         self.sub_state = self.create_subscription(
             BlueBoatState, # message type
             'BlueBoatState', # topic name
@@ -21,13 +51,15 @@ class NMPCNode(Node):
             10
         )
         self.get_logger().info("BlueBoatState subscriber started.")
-   
+#---------------------------------------------------------------#
+        # Publisher for the BlueBoatActuatorInputs message
         self.pub_thruster = self.create_publisher(
             BlueBoatActuatorInputs, # message type
             'BlueBoatThrusterInputs', # topic name
             10
         )
         self.get_logger().info("BlueBoatThrusterInputs publisher started.")
+#---------------------------------------------------------------#
 
         # NMPC parameters and acados solver initialization
         self.Tf = 4.0        # prediction horizon [s]
@@ -42,13 +74,6 @@ class NMPCNode(Node):
         # Get dimensions from the vessel model
         self.nx = self.model.x.size()[0]
         self.nu = self.model.u.size()[0]
-
-        # Load waypoints from file 
-        pkg_dir = os.path.dirname(os.path.realpath(__file__))
-        waypoints_path = os.path.join(pkg_dir, 'waypoints.txt')
-        self.waypoints = np.loadtxt(waypoints_path)
-        self.current_wp_idx = 0
-        self.get_logger().info(f"Waypoints loaded from {waypoints_path}.")
 
         # Define target state and control
         self.target_state = np.array([
@@ -112,17 +137,14 @@ class NMPCNode(Node):
             self.get_logger().warn("acados solver failed with status {}".format(status))
             return
 
-        # Retrieve the control solution.
-        u0_sol = self.acados_solver.get(0, "u")
-
         # Prepare and publish the thruster command.
-        thruster_msg = BlueBoatThrusterInputs()
-        # Assuming the thruster message has an 'inputs' field that accepts a list of floats.
-        thruster_msg.inputs = u0_sol.flatten().tolist()
+        thruster_msg = BlueBoatActuatorInputs()
+        x0_next = self.acados_solver.get(1, "x")
+        thruster_msg.port_thruster = x0_next[10]
+        thruster_msg.stbd_thruster = x0_next[11]
         self.pub_thruster.publish(thruster_msg)
 
-        # Optionally update the solver’s initial state for warm starting.
-        x0_next = self.acados_solver.get(1, "x")
+        # Warm start the solver for the next iteration.
         self.acados_solver.set(0, "lbx", x0_next)
         self.acados_solver.set(0, "ubx", x0_next)
 
