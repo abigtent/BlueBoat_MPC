@@ -1,69 +1,35 @@
 import numpy as np
 
-def los_guidance(x_pos, y_pos, psi, waypoints, current_wp_idx, los_lookahead, thresh_next_wp):
-        if current_wp_idx >= len(waypoints) - 1:
-            return psi, current_wp_idx, 0.0, waypoints[-1]
-        
-        x, y = x_pos, y_pos
+def normalize_angle(angle):
+    """Wrap angle to [-π, π]."""
+    while angle > np.pi:
+        angle -= 2 * np.pi
+    while angle <= -np.pi:
+        angle += 2 * np.pi
+    return angle
 
+def los_guidance(x, y, psi, waypoints, current_wp_idx, los_lookahead, thresh_next_wp):
+    if len(waypoints) < 2 or current_wp_idx >= len(waypoints) - 1:
+        return psi, current_wp_idx, 0.0, waypoints[-1]
 
-        wp_curr = waypoints[current_wp_idx]
-        if current_wp_idx < len(waypoints) - 1:
-            wp_next = waypoints[current_wp_idx + 1]
-        else:
-            wp_next = wp_curr  # Keep the last waypoint fixed
-        
-        dx = wp_next[0] - wp_curr[0]
-        dy = wp_next[1] - wp_curr[1]
-        path_length = np.hypot(dx, dy)
+    wp_curr = waypoints[current_wp_idx]
+    wp_next = waypoints[current_wp_idx + 1]
 
-        if path_length < 1e-6:
-            #return np.arctan2(dy, dx)  # Avoid division by zero
-            return np.arctan2(dy, dx), current_wp_idx, 0.0, wp_next
-         
-        
-        t = ((x - wp_curr[0]) * dx + (y - wp_curr[1]) * dy) / path_length**2
-        t = np.clip(t, 0, 1)  # Limit t to [0, 1] for interpolation
+    dx = wp_next[0] - wp_curr[0]
+    dy = wp_next[1] - wp_curr[1]
 
-        closest_x = wp_curr[0] + t * dx
-        closest_y = wp_curr[1] + t * dy
+    path_angle = np.arctan2(dy, dx)
 
-        cross_track_error = np.hypot(x - closest_x, y - closest_y)
+    # Cross-track error (in rotated path frame)
+    e = (y - wp_curr[1]) * np.cos(path_angle) - (x - wp_curr[0]) * np.sin(path_angle)
 
-        lookahead_x = closest_x + los_lookahead * dx / path_length
-        lookahead_y = closest_y + los_lookahead * dy / path_length
+    # Line-of-sight guidance law
+    psi_d = path_angle - np.arctan(e / los_lookahead)
+    psi_d = normalize_angle(psi_d)
 
-        # Compute desired heading
-        psi_d = np.arctan2(lookahead_y - y, lookahead_x - x)
+    # Check if vessel is close to the **next** waypoint (not just current segment start)
+    dist_to_next = np.hypot(x - wp_next[0], y - wp_next[1])
+    if dist_to_next < thresh_next_wp and current_wp_idx < len(waypoints) - 2:
+        current_wp_idx += 1
 
-        if np.hypot(x - wp_curr[0], y - wp_curr[1]) < thresh_next_wp and current_wp_idx < len(waypoints) - 1:
-            current_wp_idx += 1
-
-
-        return psi_d, current_wp_idx, cross_track_error, wp_next
-    
-    
-def ssa(angle, unit='rad'):
-    """
-    Smallest-Signed Angle (SSA):
-    Maps an angle to the interval [-pi, pi) for radians or [-180, 180) for degrees.
-    
-    Parameters:
-        angle (float): The angle to be wrapped.
-        unit (str, optional): The unit of the angle. Use 'rad' for radians (default) or 'deg' for degrees.
-    
-    Returns:
-        float: The wrapped angle.
-    
-    Examples:
-        >>> ssa(4 * math.pi)
-        0.0
-        >>> ssa(190, 'deg')
-        -170.0
-    """
-    if unit == 'rad':
-        return ((angle + np.pi) % (2 * np.pi)) - np.pi
-    elif unit == 'deg':
-        return ((angle + 180) % 360) - 180
-    else:
-        raise ValueError(f"Invalid unit argument: '{unit}'. Unit must be either 'deg' or 'rad'.")
+    return psi_d, current_wp_idx, e, wp_next

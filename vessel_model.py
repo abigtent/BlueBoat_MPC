@@ -95,7 +95,7 @@ def usv_model():
     chi_dot = vertcat(r, r * chi_c, -r * chi_s)
 
     # Cross-track error dynamics
-    cross_error_dot = -(u * np.cos(psi) - v * np.sin(psi)) * np.sin(alpha)  + (u * np.sin(psi) + v * np.cos(psi)) * np.cos(alpha)
+    cross_error_dot = -(u * cos(psi) - v * sin(psi)) * sin(alpha)  + (u * sin(psi) + v * cos(psi)) * cos(alpha)
 
     # Thruster dynamics
     thruster_dyn = vertcat(port_thruster_dot, stbd_thruster_dot)
@@ -110,8 +110,8 @@ def usv_model():
     )
 
     # ----------------------
-    r_v = 3.0
-    constraint.expr = vertcat((x - x_obs)**2 + (y - y_obs)**2 - (r_obs + r_v)**2)
+    #r_v = 3.0
+    #constraint.expr = vertcat((x - x_obs)**2 + (y - y_obs)**2 - (r_obs + r_v)**2)
 
     # State derivative placeholders
     xdot = MX.sym('xdot', 12)
@@ -135,10 +135,10 @@ def usv_model():
     # ----------------------
     model.u_min = -1.5
     model.u_max = 1.5
-    model.thrust_port_min = -100
-    model.thrust_stbd_min = -100
-    model.thrust_port_max = 100
-    model.thrust_stbd_max = 100
+    model.thrust_port_min = -20
+    model.thrust_stbd_min = -20
+    model.thrust_port_max = 20
+    model.thrust_stbd_max = 20
 
     model.x0 = np.zeros(12)
 

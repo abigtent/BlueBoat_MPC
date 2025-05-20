@@ -43,11 +43,8 @@ def plotFnc(simX, simU, simError, t):
     # --- Plot error signals ---
     plt.subplot(3, 1, 3)
     # Here we assume simError has at least 2 columns: e.g. heading error and lateral error.
-    plt.plot(t, simError[:, 0], label='Heading error (psi)')
-    plt.plot(t, simError[:, 1], label='Lateral error (y)')
-    # If there is a third error, plot it as well.
-    if simError.shape[1] > 2:
-        plt.plot(t, simError[:, 2], label='Error 3')
+    plt.plot(t, simError[:, 0], label='Cross-track error [m]')
+    plt.plot(t, simError[:, 1], label='Heading error [rad]')
     plt.title('Error Signals')
     plt.xlabel('Time [s]')
     plt.ylabel('Error')
