@@ -33,9 +33,9 @@ def usv_model():
     chi = MX.sym('chi')     # course angle
     chi_s = MX.sym('chi_s') # sin(chi)
     chi_c = MX.sym('chi_c') # cos(chi)
-    cross_error = MX.sym('cross_error') 
-    port_thruster = MX.sym('left_thruster')
-    stbd_thruster = MX.sym('right_thruster')
+    cross_error = MX.sym('cross_error') # cross-track error
+    port_thruster = MX.sym('left_thruster') # left thruster
+    stbd_thruster = MX.sym('right_thruster') # right thruster
     
     x_states = vertcat(x, y, psi, u, v, r, chi, chi_s, chi_c, cross_error, port_thruster, stbd_thruster)
 
@@ -117,7 +117,7 @@ def usv_model():
     xdot = MX.sym('xdot', 12)
 
     # ----------------------
-    # Assign to model struct
+    # Assign to model structs
     # ----------------------
     
     model.f_impl_expr = xdot - f_expl
