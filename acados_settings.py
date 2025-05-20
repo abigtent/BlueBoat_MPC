@@ -70,8 +70,8 @@ def acados_settings(Tf, N):
     Q = np.diag([
     0.0,  # x
     0.0,  # y
-    0.1,  # psi
-    20.0, # u
+    1.0,  # psi
+    25.0, # u
     0.0,  # v
     0.1,  # r
     0.0,  # chi (heading alignment)
@@ -89,7 +89,7 @@ def acados_settings(Tf, N):
     Qe = np.diag([
     0.0,   # x (not directly tracked)
     0.0,   # y (not directly tracked)
-    0.0,   # psi (not directly tracked)
+    2.0,   # psi (not directly tracked)
     40.0,  # u (surge speed)
     0.0,   # v
     0.2,   # r (yaw rate)
@@ -136,9 +136,9 @@ def acados_settings(Tf, N):
     ocp.cost.yref_e = np.zeros((nx))
 
     # Setting constraints and applying them to the corresponding state and input variables
-    ocp.constraints.lbx = np.array([model.u_min, model.thrust_port_min, model.thrust_stbd_min])
-    ocp.constraints.ubx = np.array([model.u_max, model.thrust_port_max, model.thrust_stbd_max])
-    ocp.constraints.idxbx = np.array([3, 10, 11])
+    ocp.constraints.lbx = np.array([model.u_min, model.r_min, model.thrust_port_min, model.thrust_stbd_min])
+    ocp.constraints.ubx = np.array([model.u_max, model.r_max, model.thrust_port_max, model.thrust_stbd_max])
+    ocp.constraints.idxbx = np.array([3, 5, 10, 11])
 
     # set intial condition
     ocp.constraints.x0 = model.x0

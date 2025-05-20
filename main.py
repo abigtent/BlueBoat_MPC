@@ -10,7 +10,7 @@ from lidar_simulator import LidarSimulator
 # Prediction horizon, discretization, simulation duration
 Tf = 4.0   # prediction horizon [s]
 N = 100     # number of discretization steps
-T = 100.0    # maximum simulation time [s]
+T = 150.0    # maximum simulation time [s]
 los_lookahead = 15.0  # Lookahead distance for LOS guidance
 thresh_next_wp = 5.0  # Threshold to switch waypoints
 
@@ -30,6 +30,7 @@ simX = np.ndarray((Nsim, nx))
 simU = np.ndarray((Nsim, nu))
 simError = np.ndarray((Nsim, 3))  # for example: [heading_error, lateral_error, (optional third error)]
 
+# Initialize computation time statistics
 tcomp_sum = 0
 tcomp_max = 0
 
@@ -51,15 +52,15 @@ yref_N = target_state
 # Set the initial condition for the solver.
 x0 = np.zeros(nx)
 x0[0] = 10.0     # x
-x0[1] = 20.0      # y
-x0[2] = -np.deg2rad(90)  # heading (psi)
+x0[1] = -30.0      # y
+x0[2] = np.deg2rad(90)  # heading (psi)
 x0[3] = 0.2      # surge velocity (u)
 x0[4] = 0.1      # sway velocity (v)
 x0[5] = 0.05      # yaw rate (r)
 x0[6] = x0[2]    # chi = psi
 x0[7] = np.cos(x0[2])  # cos(chi)
 x0[8] = np.sin(x0[2])  # sin(chi)
-x0[9] = 20.0      # cross-track error
+x0[9] = -30.0      # cross-track error
 x0[10] = 0.0     # port thruster
 x0[11] = 0.0     # starboard thruster
 # Update the initial state constraint at stage 0 with the full state.
@@ -90,7 +91,7 @@ def normalize_angle(angle):
     """
     Normalize an angle to the range [-pi, pi].
     """
-    return (angle + np.pi) % (2 * np.pi) - np.pi
+    return np.rad2deg((angle + np.pi) % (2 * np.pi) - np.pi)
 
 
 for i in range(Nsim):
@@ -99,7 +100,7 @@ for i in range(Nsim):
     current_psi = x0[2]
 
     # Run LOS guidance using simulated state
-    chi_d, cross_track_error, alpha, current_wp_idx, dist_wp, finished = los_guidance(
+    psi_d, cross_track_error, alpha, current_wp_idx, dist_wp, finished = los_guidance(
         current_position[0],
         current_position[1],
         waypoints,
@@ -112,6 +113,7 @@ for i in range(Nsim):
     # Update reference trajectory
     #target_state[0] = wp_next[0]
     #target_state[1] = wp_next[1]
+    target_state[2] = psi_d
     target_state[3] = u_d
     #target_state[6] = alpha
     target_state[7] = np.sin(alpha)
@@ -121,7 +123,6 @@ for i in range(Nsim):
     yref = np.concatenate((target_state, target_control))
 
     print(cross_track_error)
-
 
     yref_N = target_state
     parameter_values[0] = alpha
@@ -137,7 +138,14 @@ for i in range(Nsim):
     acados_solver.set(0, "ubx", x0)
 
     # Solve NMPC
+    start = time.perf_counter()
     status = acados_solver.solve()
+    elapsed = time.perf_counter() - start
+
+    tcomp_sum += elapsed
+    if elapsed > tcomp_max:
+        tcomp_max = elapsed
+
     if status != 0:
         print(f"acados returned status {status} in iteration {i}")
         continue
@@ -153,8 +161,9 @@ for i in range(Nsim):
     simX[i, :] = x0_next
     simU[i, :] = u0_sol
     simError[i, 0] = cross_track_error
-    #simError[i, 1] = heading_error
-
+    simError[i, 1] = normalize_angle(alpha - current_psi)
+    simError[i, 2] = u_d - x0[3]  
+   
     # Update state for next iteration
     x0 = x0_next
 
@@ -173,8 +182,8 @@ animate_vessel(simX, waypoints, interval=2)
 plot(simX, simU, simError, t)
 
 # Print performance statistics
-print("Average computation time: {:.4f} s".format(tcomp_sum / Nsim))
-print("Maximum computation time: {:.4f} s".format(tcomp_max))
+print(f"Average solver time: {tcomp_sum/Nsim:.6f} s")
+print(f"Max solver time:     {tcomp_max:.6f} s")
 print("Simulation time: {:.4f} s".format(Tf * Nsim / N))
 
 
