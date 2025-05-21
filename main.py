@@ -3,6 +3,7 @@ import numpy as np
 import casadi as ca
 from acados_settings import *
 from plotting import plotFnc as plot
+from plot_vessel import plot_vessel_trajectory
 from animate_vessel import animate_vessel
 from guidance3 import los_guidance
 from lidar_simulator import LidarSimulator
@@ -51,16 +52,17 @@ yref_N = target_state
 
 # Set the initial condition for the solver.
 x0 = np.zeros(nx)
-x0[0] = 10.0     # x
-x0[1] = 30.0      # y
-x0[2] = np.deg2rad(-90)  # heading (psi)
+x0[0] = 5.0  
+x0[1] = 10.0    
+x0[2] = np.deg2rad(-90)# psi (heading)
+
 x0[3] = 0.2      # surge velocity (u)
 x0[4] = 0.1      # sway velocity (v)
 x0[5] = 0.05      # yaw rate (r)
 x0[6] = x0[2]    # chi = psi
 x0[7] = np.cos(x0[2])  # cos(chi)
 x0[8] = np.sin(x0[2])  # sin(chi)
-x0[9] = 30.0      # cross-track error
+x0[9] = 10.0    # cross-track error
 x0[10] = 0.0     # port thruster
 x0[11] = 0.0     # starboard thruster
 # Update the initial state constraint at stage 0 with the full state.
@@ -122,7 +124,6 @@ for i in range(Nsim):
 
     yref = np.concatenate((target_state, target_control))
 
-    print(cross_track_error)
 
     yref_N = target_state
     parameter_values[0] = alpha
@@ -176,7 +177,7 @@ t = np.linspace(0.0, Nsim * Tf / N, Nsim)
 # Animate the vessel trajectory
 target_position = [target_state[0], target_state[1]]
 #lidar_sim = LidarSimulator(obstacles, max_range=20, num_rays=64)
-animate_vessel(simX, waypoints, interval=2)
+plot_vessel_trajectory(simX, waypoints, thresh_next_wp)
 
 # Plot the results.
 plot(simX, simU, simError, t)

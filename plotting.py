@@ -79,7 +79,7 @@ def plotFnc(simX, simU, simError, t):
     plt.tight_layout()
 
     # Save the figure as SVG
-    plt.savefig("vessel_simulation.svg",
+    plt.savefig("vessel_simulation_plot_complete_turning_test.svg",
             format="svg",
             transparent=True,
             bbox_inches="tight")

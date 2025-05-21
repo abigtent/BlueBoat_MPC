@@ -4,7 +4,7 @@ import matplotlib.animation as animation
 from matplotlib.patches import FancyArrow
 
 
-def animate_vessel(simX, waypoints, interval):
+def animate_vessel(simX, waypoints, thresh, interval):
     """
     Animate the vessel's position over time and draw waypoints and trail.
     
@@ -20,6 +20,8 @@ def animate_vessel(simX, waypoints, interval):
     ax.set_ylabel("North [m]")
     ax.set_title("Vessel Position Animation")
     ax.grid(True)
+
+    final_north, final_east = waypoints[-1, 0], waypoints[-1, 1]
 
     vessel_arrow = [None] 
     # Plot limits
@@ -82,6 +84,11 @@ def animate_vessel(simX, waypoints, interval):
         ax.add_patch(arrow)
         vessel_arrow[0] = arrow
 
+        dist = np.hypot(x - final_north, y - final_east)
+        if dist <= thresh:
+            ani.event_source.stop()
+            
+
         return trail_line, vessel_marker, arrow
 
     ani = animation.FuncAnimation(
@@ -90,6 +97,10 @@ def animate_vessel(simX, waypoints, interval):
     )
 
     ax.set_aspect('equal', adjustable='box')
+    update(len(simX)-1)
+    fig.canvas.draw()  
+    fig.savefig('vessel_final.png', dpi=300, bbox_inches='tight')
+
     plt.show()
 
 
