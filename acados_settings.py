@@ -77,7 +77,7 @@ def acados_settings(Tf, N):
     0.0,  # chi (heading alignment)
     2.0,  # chi_s = sin(chi)
     2.0,  # chi_c = cos(chi)
-    40.0, # cross-track error
+    60.0, # cross-track error
     0.001, 0.001  # thruster effort
     ])
 
@@ -96,7 +96,7 @@ def acados_settings(Tf, N):
     0.0,   # chi (you can keep this zero if chi_s and chi_c are included)
     4.0,   # chi_s = sin(chi)
     4.0,   # chi_c = cos(chi)
-    60.0,   # y_e (cross-track error)
+    80.0,   # y_e (cross-track error)
     0.002, # T_port (for smoothness)
     0.002  # T_stbd
     ])
