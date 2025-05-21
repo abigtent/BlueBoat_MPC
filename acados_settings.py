@@ -70,8 +70,8 @@ def acados_settings(Tf, N):
     Q = np.diag([
     0.0,  # x
     0.0,  # y
-    1.0,  # psi
-    25.0, # u
+    4.0,  # psi
+    20.0, # u
     0.0,  # v
     0.1,  # r
     0.0,  # chi (heading alignment)
@@ -83,20 +83,20 @@ def acados_settings(Tf, N):
 
     
     R = np.eye(nu)
-    R[0, 0] = 0.1 # Penalize change in port thruster
-    R[1, 1] = 0.1 # Penalize change in stbd thruster
+    R[0, 0] = 0.01 # Penalize change in port thruster
+    R[1, 1] = 0.01 # Penalize change in stbd thruster
 
     Qe = np.diag([
     0.0,   # x (not directly tracked)
     0.0,   # y (not directly tracked)
-    2.0,   # psi (not directly tracked)
+    8.0,   # psi (not directly tracked)
     40.0,  # u (surge speed)
     0.0,   # v
     0.2,   # r (yaw rate)
     0.0,   # chi (you can keep this zero if chi_s and chi_c are included)
     4.0,   # chi_s = sin(chi)
     4.0,   # chi_c = cos(chi)
-    1.0,   # y_e (cross-track error)
+    60.0,   # y_e (cross-track error)
     0.002, # T_port (for smoothness)
     0.002  # T_stbd
     ])

@@ -11,7 +11,7 @@ from lidar_simulator import LidarSimulator
 Tf = 4.0   # prediction horizon [s]
 N = 100     # number of discretization steps
 T = 150.0    # maximum simulation time [s]
-los_lookahead = 15.0  # Lookahead distance for LOS guidance
+los_lookahead = 20.0  # Lookahead distance for LOS guidance
 thresh_next_wp = 5.0  # Threshold to switch waypoints
 
 # load acados model and solver
@@ -52,15 +52,15 @@ yref_N = target_state
 # Set the initial condition for the solver.
 x0 = np.zeros(nx)
 x0[0] = 10.0     # x
-x0[1] = -30.0      # y
-x0[2] = np.deg2rad(90)  # heading (psi)
+x0[1] = 30.0      # y
+x0[2] = np.deg2rad(-90)  # heading (psi)
 x0[3] = 0.2      # surge velocity (u)
 x0[4] = 0.1      # sway velocity (v)
 x0[5] = 0.05      # yaw rate (r)
 x0[6] = x0[2]    # chi = psi
 x0[7] = np.cos(x0[2])  # cos(chi)
 x0[8] = np.sin(x0[2])  # sin(chi)
-x0[9] = -30.0      # cross-track error
+x0[9] = 30.0      # cross-track error
 x0[10] = 0.0     # port thruster
 x0[11] = 0.0     # starboard thruster
 # Update the initial state constraint at stage 0 with the full state.
