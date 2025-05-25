@@ -67,6 +67,7 @@ def acados_settings(Tf, N):
     ns = 2
     nsh = 2
 
+
     Q = np.diag([
     0.0,  # x
     0.0,  # y
@@ -83,8 +84,8 @@ def acados_settings(Tf, N):
 
     
     R = np.eye(nu)
-    R[0, 0] = 0.01 # Penalize change in port thruster
-    R[1, 1] = 0.01 # Penalize change in stbd thruster
+    R[0, 0] = 0.001 # Penalize change in port thruster
+    R[1, 1] = 0.001 # Penalize change in stbd thruster
 
     Qe = np.diag([
     0.0,   # x (not directly tracked)

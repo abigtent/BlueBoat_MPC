@@ -135,8 +135,8 @@ def usv_model():
     # ----------------------
     model.u_min = -1.5
     model.u_max = 1.5
-    model.r_min = -5.0
-    model.r_max = 5.0
+    model.r_min = -0.5
+    model.r_max = 0.5
     model.thrust_port_min = -20
     model.thrust_stbd_min = -20
     model.thrust_port_max = 20

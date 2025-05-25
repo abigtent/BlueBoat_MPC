@@ -3,6 +3,7 @@ import numpy as np
 import casadi as ca
 from acados_settings import *
 from plotting import plotFnc as plot
+from cross_track_calc import compute_iaecte
 from plot_vessel import plot_vessel_trajectory
 from animate_vessel import animate_vessel
 from guidance3 import los_guidance
@@ -11,9 +12,9 @@ from lidar_simulator import LidarSimulator
 # Prediction horizon, discretization, simulation duration
 Tf = 4.0   # prediction horizon [s]
 N = 100     # number of discretization steps
-T = 150.0    # maximum simulation time [s]
-los_lookahead = 20.0  # Lookahead distance for LOS guidance
-thresh_next_wp = 5.0  # Threshold to switch waypoints
+T = 175.0    # maximum simulation time [s]
+los_lookahead = 10.0  # Lookahead distance for LOS guidance
+thresh_next_wp = 1.0  # Threshold to switch waypoints
 
 # load acados model and solver
 constraint, model, acados_solver, parameter_values = acados_settings(Tf, N)
@@ -29,7 +30,8 @@ Nsim = int(T * N / Tf)
 # initialize storage for simulation data
 simX = np.ndarray((Nsim, nx))
 simU = np.ndarray((Nsim, nu))
-simError = np.ndarray((Nsim, 3))  # for example: [heading_error, lateral_error, (optional third error)]
+simError = np.ndarray((Nsim, 3))
+simCrossTrackError = np.ndarray((Nsim, 1))
 
 # Initialize computation time statistics
 tcomp_sum = 0
@@ -69,6 +71,8 @@ x0[11] = 0.0     # starboard thruster
 acados_solver.set(0, "lbx", x0)
 acados_solver.set(0, "ubx", x0)
 u_d = 1.5 # desired surge velocity
+dt = Tf / N
+arrival_time = None
 
 
 #lidar_sim = LidarSimulator(obstacles, max_range=20, num_rays=64, inflation_radius=1.0)
@@ -110,7 +114,8 @@ for i in range(Nsim):
         los_lookahead,
         thresh_next_wp,
     )
-    #heading_error = normalize_angle(chi_d - current_psi)
+    if finished and arrival_time is None:
+        arrival_time = i * dt  # dt is Tf / N
 
     # Update reference trajectory
     #target_state[0] = wp_next[0]
@@ -124,6 +129,11 @@ for i in range(Nsim):
 
     yref = np.concatenate((target_state, target_control))
 
+
+    #print(np.rad2deg(alpha))
+    
+    # Print and compare the values of psi and psi_d
+    print(f"Current psi: {np.rad2deg(current_psi)}, Desired psi: {np.rad2deg(psi_d)}")
 
     yref_N = target_state
     parameter_values[0] = alpha
@@ -161,6 +171,7 @@ for i in range(Nsim):
     # Log data
     simX[i, :] = x0_next
     simU[i, :] = u0_sol
+    simCrossTrackError[i, 0] = cross_track_error
     simError[i, 0] = cross_track_error
     simError[i, 1] = normalize_angle(alpha - current_psi)
     simError[i, 2] = u_d - x0[3]  
@@ -182,10 +193,30 @@ plot_vessel_trajectory(simX, waypoints, thresh_next_wp)
 # Plot the results.
 plot(simX, simU, simError, t)
 
-# Print performance statistics
-print(f"Average solver time: {tcomp_sum/Nsim:.6f} s")
-print(f"Max solver time:     {tcomp_max:.6f} s")
-print("Simulation time: {:.4f} s".format(Tf * Nsim / N))
+# Statistics
+dt = Tf / N
+port_thruster = simX[:, 10]  # port thruster
+stb_thruster = simX[:, 11]  # starboard thruster
+total_effort = np.sum(np.abs(port_thruster) + np.abs(stb_thruster)) * dt
+results = compute_iaecte(simCrossTrackError)
+
+avg_solver_time = tcomp_sum / Nsim
+max_solver_time = tcomp_max
+simulation_time = Tf * Nsim / N
+
+print("\n--- Performance Summary ---")
+print(f"IAECTE:             {results['IAECTE']:.4f}")
+print(f"Max CTE:            {results['max_CTE']:.4f}")
+print(f"Mean CTE:           {results['mean_CTE']:.4f}")
+print(f"Total control effort: {total_effort:.4f}")
+print(f"Average solver time:{avg_solver_time:.6f} s")
+print(f"Max solver time:    {max_solver_time:.6f} s")
+print(f"Simulation time:    {simulation_time:.4f} s")
+if arrival_time is not None:
+    print(f"Time to goal:        {arrival_time:.4f} s")
+else:
+    print("Vessel did not reach the goal within the simulation time.")
+
 
 
 
